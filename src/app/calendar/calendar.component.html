@@ -1,0 +1,56 @@
+<mat-toolbar>
+  <span>Shot 365</span>
+  <span class="example-spacer"></span>
+  <!--<img src="/main-icon.png" style="width: 30px; height: 30px;" />-->
+  <button mat-icon-button class="tool-btn mdc-button mdc-button--raised mat-mdc-button-base" (click)="openDialog()" aria-label="Info">
+    <mat-icon>info_outline</mat-icon>
+  </button>
+</mat-toolbar>
+
+<mat-form-field class="example-full-width">
+  <mat-label>Выберите дату</mat-label>
+  <input matInput [matDatepicker]="picker"
+         (dateInput)="addEvent('input', $event)" >
+  <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+  <mat-datepicker  [dateClass]="dateClass" #picker (opened)="datepickerOpened()">
+    <mat-month-view #monthView ></mat-month-view>
+  </mat-datepicker>
+</mat-form-field>
+<mat-form-field>
+  <mat-label>Количество кадров</mat-label>
+  <!--<input matInput [value]="count_shot">-->
+  <mat-select [(value)]="count_shot">
+    <ng-container *ngFor="let i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,24,36]">
+      <mat-option value="{{i}}">{{i}}</mat-option>
+    </ng-container>
+  </mat-select>
+</mat-form-field>
+
+<br>
+<div class="button-row">
+  <button
+    mat-raised-button
+    matTooltip="This is a tooltip!"
+    (click)="addDate()">Shot
+    <mat-icon>add_a_photo</mat-icon></button>
+</div>
+<!--<p>Selected date: {{ selectedDate }}</p>
+<p>Selected month: {{ selectedMonth }}</p>-->
+<p class="shot-day">За день: <b>{{ shot_day }}</b></p>
+<mat-progress-bar mode="buffer" [value]="shot_day*100" bufferValue="100"></mat-progress-bar>
+<p class="shot-mnt">За месяц: <b>{{ shot_mnt }}</b></p>
+<mat-progress-bar mode="buffer" [value]="(shot_mnt/30)*100" bufferValue="100"></mat-progress-bar>
+<p class="shot-total">За год: <b>{{ shot_total }}</b></p>
+<mat-progress-bar mode="buffer" [value]="(shot_total/365)*100" bufferValue="100"></mat-progress-bar>
+
+<footer>
+    <div layout="row" layout-align="center center" flex>
+      ver.: 0.0.3
+    </div>
+</footer>
+<!--<hr>
+<div class="example-events">
+  @for (e of events(); track e) {
+    <div>Дата: {{ selectedDate }} количество: {{count_shot}}</div>
+  }
+</div>-->

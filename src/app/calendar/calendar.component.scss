@@ -1,0 +1,54 @@
+@use '@angular/material' as mat;
+
+   :root {
+     @include mat.toolbar-overrides((
+     container-background-color: #A5F,
+     container-text-color: orange,
+     ));
+   }
+.demo-inline-calendar-card {
+  width: 300px;
+}
+button.example-custom-date-class {
+  background: orange;
+  border-radius: 100%;
+}
+button.example-custom-date-class-warning {
+  background: #ffabf3;
+  border-radius: 100%;
+}
+button {
+  margin-right: 8px;
+}
+mat-form-field {
+  width: 100%;
+}
+.button-row{
+  text-align: center;
+}
+p{
+  color: antiquewhite;
+  padding-left: 5px;
+}
+p.shot-mnt{
+  color: lightgoldenrodyellow;
+}
+p.shot-total{
+  color: orange;
+}
+.mdc-linear-progress__buffer-bar{
+  background-color: #9d2b7b!important;
+}
+footer{
+  position:fixed;
+  bottom:0px;
+  background-color:pink;
+  width:100%;
+}
+.example-spacer {
+  flex: 1 1 auto;
+}
+.tool-btn{
+  min-width: 0!important;
+  margin-right: 0!important;
+}
