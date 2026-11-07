@@ -64,6 +64,34 @@
           </article>
         </section>
 
+        <section class="stats-grid extended-stats">
+          <article class="stat-card">
+            <span>Среднее за активный день</span>
+            <strong>{{ averagePerActiveDay | number:'1.0-2' }}</strong>
+          </article>
+          <article class="stat-card">
+            <span>{{ activity.type === 'counter' ? 'Лучший день' : activity.type === 'habit' ? 'Максимум успешных дней' : 'Больше всего событий за день' }}</span>
+            <strong>{{ bestDay | number:'1.0-2' }} <small>{{ activity.unit || (activity.type === 'habit' ? 'дн.' : 'событий') }}</small></strong>
+          </article>
+        </section>
+
+        <section class="period-summaries">
+          <article class="period-card">
+            <h2>По неделям</h2>
+            <p class="period-empty" *ngIf="weeklySummary.length === 0">Нет данных</p>
+            <div class="period-row" *ngFor="let item of weeklySummary">
+              <span>{{ item.label }}</span><strong>{{ item.value | number:'1.0-2' }}</strong>
+            </div>
+          </article>
+          <article class="period-card">
+            <h2>По месяцам</h2>
+            <p class="period-empty" *ngIf="monthlySummary.length === 0">Нет данных</p>
+            <div class="period-row" *ngFor="let item of monthlySummary">
+              <span>{{ item.label }}</span><strong>{{ item.value | number:'1.0-2' }}</strong>
+            </div>
+          </article>
+        </section>
+
         <section class="chart-card">
           <div class="chart-heading">
             <div>
