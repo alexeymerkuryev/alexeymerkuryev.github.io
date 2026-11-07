@@ -60,9 +60,12 @@ export class ActivityHistoryComponent implements OnInit {
       .filter(entry => entry.status === successful)
       .map(entry => entry.date));
     let cursor = new Date();
+    // If today has not been marked yet, keep showing the streak through yesterday.
+    // An unmarked day is never interpreted as a failure.
+    if (!dates.has(this.formatDate(cursor))) {
+      cursor.setDate(cursor.getDate() - 1);
+    }
     let streak = 0;
-    // An unmarked day is not treated as a failure; the streak counts consecutive
-    // explicitly successful calendar days only.
     while (dates.has(this.formatDate(cursor))) {
       streak++;
       cursor.setDate(cursor.getDate() - 1);
