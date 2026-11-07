@@ -1,0 +1,155 @@
+<section class="activities-page">
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">SHOTDAYS</p>
+      <h1>Активности</h1>
+      <p class="subtitle">Привычки, счётчики и события в одном месте</p>
+    </div>
+    <button class="primary-button" type="button" (click)="openCreate()">＋ Новая</button>
+  </header>
+
+  <p class="notice error" *ngIf="error && !editorOpen">{{ error }}</p>
+  <div class="loading" *ngIf="loading">Загружаем активности…</div>
+
+  <div class="empty-state" *ngIf="!loading && activities.length === 0">
+    <div class="empty-icon">＋</div>
+    <h2>Пока нет активностей</h2>
+    <p>Создай первую — например, «Фотография», «Бег» или «Без сладкого».</p>
+    <button class="primary-button" type="button" (click)="openCreate()">Создать активность</button>
+  </div>
+
+  <div class="activity-list" *ngIf="!loading && activities.length">
+    <article class="activity-card" *ngFor="let activity of activities; trackBy: trackById">
+      <div class="activity-symbol" [class.counter]="activity.type === 'counter'"
+           [class.habit]="activity.type === 'habit'" [class.event]="activity.type === 'event'">
+        {{ activity.type === 'counter' ? '↗' : activity.type === 'habit' ? '✓' : '◷' }}
+      </div>
+      <div class="activity-info">
+        <div class="activity-title-row">
+          <h2>{{ activity.name }}</h2>
+          <span class="type-label">{{ typeLabel(activity.type) }}</span>
+        </div>
+        <p class="description" *ngIf="activity.description">{{ activity.description }}</p>
+        <p class="meta" *ngIf="activity.type === 'counter'">{{ activity.unit }} · {{ inputModeLabel(activity.inputMode) }}</p>
+        <p class="meta" *ngIf="activity.type === 'habit'">{{ habitSummary(activity) }} · {{ inputModeLabel(activity.inputMode) }}</p>
+        <p class="meta" *ngIf="activity.type === 'event'">{{ inputModeLabel(activity.inputMode) }}</p>
+        <p class="meta target" *ngIf="activity.settings.target !== undefined">
+          Цель: {{ activity.settings.target }} {{ activity.type === 'counter' ? activity.unit : '' }}
+          / {{ activity.settings.targetPeriod === 'week' ? 'неделю' : activity.settings.targetPeriod === 'month' ? 'месяц' : 'день' }}
+        </p>
+      </div>
+      <div class="card-actions">
+        <button type="button" class="icon-button" (click)="openEdit(activity)" aria-label="Редактировать">✎</button>
+        <button type="button" class="icon-button danger-action" (click)="remove(activity)" aria-label="Удалить">×</button>
+      </div>
+    </article>
+  </div>
+
+  <div class="editor-backdrop" *ngIf="editorOpen" (click)="closeEditor()">
+    <section class="editor-panel" role="dialog" aria-modal="true" aria-labelledby="editor-title" (click)="$event.stopPropagation()">
+      <header class="editor-heading">
+        <div>
+          <p class="eyebrow">НАСТРОЙКИ</p>
+          <h2 id="editor-title">{{ editingId ? 'Изменить активность' : 'Новая активность' }}</h2>
+        </div>
+        <button class="icon-button close-button" type="button" (click)="closeEditor()" aria-label="Закрыть">×</button>
+      </header>
+
+      <form (ngSubmit)="save()">
+        <label class="field">
+          <span>Название</span>
+          <input name="name" [(ngModel)]="name" maxlength="60" placeholder="Например, Велосипед" required>
+        </label>
+
+        <label class="field">
+          <span>Описание <small>необязательно</small></span>
+          <textarea name="description" [(ngModel)]="description" rows="2" maxlength="180" placeholder="Для чего ты отслеживаешь эту активность?"></textarea>
+        </label>
+
+        <fieldset class="field">
+          <legend>Тип активности</legend>
+          <div class="type-options">
+            <label class="type-option" [class.selected]="type === 'counter'">
+              <input type="radio" name="type" value="counter" [(ngModel)]="type">
+              <b>↗ Счётчик</b><small>Километры, кадры, страницы</small>
+            </label>
+            <label class="type-option" [class.selected]="type === 'habit'">
+              <input type="radio" name="type" value="habit" [(ngModel)]="type">
+              <b>✓ Привычка</b><small>Действие или отказ от него</small>
+            </label>
+            <label class="type-option" [class.selected]="type === 'event'">
+              <input type="radio" name="type" value="event" [(ngModel)]="type">
+              <b>◷ Событие</b><small>Разовый факт или заметка</small>
+            </label>
+          </div>
+        </fieldset>
+
+        <label class="field" *ngIf="type === 'counter'">
+          <span>Единица измерения</span>
+          <input name="unit" [(ngModel)]="unit" maxlength="20" placeholder="км, кадров, страниц">
+        </label>
+
+        <fieldset class="field" *ngIf="type === 'habit'">
+          <legend>Режим привычки</legend>
+          <div class="segmented">
+            <label [class.selected]="habitMode === 'build'">
+              <input type="radio" name="habitMode" value="build" [(ngModel)]="habitMode"> Формирую
+            </label>
+            <label [class.selected]="habitMode === 'avoid'">
+              <input type="radio" name="habitMode" value="avoid" [(ngModel)]="habitMode"> Избегаю
+            </label>
+          </div>
+          <span class="helper" *ngIf="habitMode === 'build'">Отмечай дни, когда выполнил действие.</span>
+          <span class="helper" *ngIf="habitMode === 'avoid'">Отмечай дни, когда удалось удержаться.</span>
+        </fieldset>
+
+        <fieldset class="field" *ngIf="type === 'habit'">
+          <legend>Расписание</legend>
+          <div class="segmented">
+            <label [class.selected]="scheduleType === 'daily'">
+              <input type="radio" name="scheduleType" value="daily" [(ngModel)]="scheduleType"> Каждый день
+            </label>
+            <label [class.selected]="scheduleType === 'weekly'">
+              <input type="radio" name="scheduleType" value="weekly" [(ngModel)]="scheduleType"> В неделю
+            </label>
+          </div>
+          <label class="inline-field" *ngIf="scheduleType === 'weekly'">
+            <span>Дней в неделю</span>
+            <input type="number" name="daysPerWeek" [(ngModel)]="daysPerWeek" min="1" max="7">
+          </label>
+        </fieldset>
+
+        <label class="field">
+          <span>Способ внесения</span>
+          <select name="inputMode" [(ngModel)]="inputMode">
+            <option value="both">Ручной ввод и быстрая отметка</option>
+            <option value="manual">Только ручной ввод</option>
+            <option value="quick">Только быстрая отметка</option>
+          </select>
+        </label>
+
+        <fieldset class="field">
+          <legend>Цель <small>необязательно</small></legend>
+          <label class="check-line">
+            <input type="checkbox" [checked]="target !== null" (change)="target = $any($event.target).checked ? 1 : null">
+            Задать цель
+          </label>
+          <div class="target-fields" *ngIf="target !== null">
+            <input type="number" name="target" [(ngModel)]="target" min="0" step="any" aria-label="Значение цели">
+            <select name="targetPeriod" [(ngModel)]="targetPeriod" aria-label="Период цели">
+              <option value="day">В день</option>
+              <option value="week">В неделю</option>
+              <option value="month">В месяц</option>
+            </select>
+          </div>
+        </fieldset>
+
+        <p class="notice error" *ngIf="error">{{ error }}</p>
+        <div class="form-actions">
+          <button class="secondary-button" type="button" (click)="closeEditor()" [disabled]="saving">Отмена</button>
+          <button class="primary-button" type="submit" [disabled]="saving">{{ saving ? 'Сохраняем…' : 'Сохранить' }}</button>
+        </div>
+      </form>
+    </section>
+  </div>
+</section>
