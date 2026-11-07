@@ -1,0 +1,76 @@
+
+<mat-toolbar>
+  <span>Shot 365</span>
+  <span class="example-spacer"></span>
+
+  <button
+    mat-icon-button
+    class="tool-btn"
+    (click)="openDialog()"
+    aria-label="Информация">
+    <mat-icon>info_outline</mat-icon>
+  </button>
+</mat-toolbar>
+
+<mat-calendar
+  #calendar
+  [selected]="selectedDate"
+  [dateClass]="dateClass"
+  (selectedChange)="onDateSelected($event)">
+</mat-calendar>
+
+<mat-form-field>
+  <mat-label>Количество кадров</mat-label>
+
+  <mat-select [(value)]="count_shot">
+    <ng-container *ngFor="let i of [
+      1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,24,36
+    ]">
+      <mat-option [value]="i">{{i}}</mat-option>
+    </ng-container>
+  </mat-select>
+</mat-form-field>
+
+<div class="button-row">
+  <button
+    mat-raised-button
+    matTooltip="Добавить количество кадров за выбранный день"
+    (click)="addDate()"
+    [disabled]="!selectedDate">
+    Shot
+    <mat-icon>add_a_photo</mat-icon>
+  </button>
+</div>
+
+<p class="shot-day">
+  За день: <b>{{ shot_day }}</b>
+</p>
+<mat-progress-bar
+  mode="buffer"
+  [value]="shot_day * 100"
+  bufferValue="100">
+</mat-progress-bar>
+
+<p class="shot-mnt">
+  За месяц: <b>{{ shot_mnt }}</b>
+</p>
+<mat-progress-bar
+  mode="buffer"
+  [value]="(shot_mnt / 30) * 100"
+  bufferValue="100">
+</mat-progress-bar>
+
+<p class="shot-total">
+  За год: <b>{{ shot_total }}</b>
+</p>
+<mat-progress-bar
+  mode="buffer"
+  [value]="(shot_total / 365) * 100"
+  bufferValue="100">
+</mat-progress-bar>
+
+<footer>
+  <div layout="row" layout-align="center center" flex>
+    ver.: 0.0.4
+  </div>
+</footer>
