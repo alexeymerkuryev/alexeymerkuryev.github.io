@@ -15,8 +15,6 @@ import {
   MatCalendarCellClassFunction,
   MatDatepickerModule
 } from '@angular/material/datepicker';
-import { MatButton } from '@angular/material/button';
-import { MatTooltip } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
 import { MatToolbar } from '@angular/material/toolbar';
 import { MatDialog } from '@angular/material/dialog';
@@ -31,8 +29,6 @@ import { Activity, ActivityEntry, HabitEntryStatus } from '../activities/activit
     CommonModule,
     FormsModule,
     MatDatepickerModule,
-    MatButton,
-    MatTooltip,
     MatIconModule,
     MatToolbar
   ],
@@ -64,7 +60,6 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
   private refreshToken = 0;
 
   counterValues: Record<string, number> = {};
-  quickValues: Record<string, number> = {};
   eventNotes: Record<string, string> = {};
   busyActivityIds = new Set<string>();
   errorMessage = '';
@@ -167,10 +162,6 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
 
   counterTotal(activityId: string): number {
     return this.entriesFor(activityId).reduce((total, entry) => total + (entry.value ?? 0), 0);
-  }
-
-  activityName(activityId: string): string {
-    return this.activities.find(activity => activity.id === activityId)?.name ?? 'Активность';
   }
 
   habitStatus(activityId: string): HabitEntryStatus | undefined {
