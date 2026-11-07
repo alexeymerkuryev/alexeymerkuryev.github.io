@@ -20,7 +20,7 @@ import {MatButton} from '@angular/material/button';
 import {MatTooltip} from '@angular/material/tooltip';
 import {MatIconModule} from '@angular/material/icon';
 import {MatToolbar} from '@angular/material/toolbar';
-import {MatFormField} from '@angular/material/form-field';
+import { MatFormField, MatLabel } from '@angular/material/form-field';
 import {MatSelect} from '@angular/material/select';
 import {MatProgressBar} from '@angular/material/progress-bar';
 import {MatDialog} from '@angular/material/dialog';
@@ -47,8 +47,9 @@ interface ShotEntry {
     MatSelect,
     MatOption,
     NgForOf,
-    MatProgressBar
-  ],
+    MatProgressBar,
+    MatLabel
+],
   templateUrl: './calendar.component.html',
   standalone: true,
   styleUrl: './calendar.component.scss',
