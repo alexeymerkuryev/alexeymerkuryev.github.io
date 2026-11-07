@@ -157,6 +157,7 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
       await this.loadCalendarData();
     } catch (error) {
       this.errorMessage = this.getErrorMessage(error);
+      this.changeDetector.markForCheck();
     }
   }
 
@@ -210,6 +211,7 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
       this.errorMessage = this.getErrorMessage(error);
     } finally {
       this.busyActivityIds.delete(activityId);
+      this.changeDetector.markForCheck();
     }
   }
 
