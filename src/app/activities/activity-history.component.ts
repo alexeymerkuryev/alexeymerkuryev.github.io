@@ -4,6 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { Activity, ActivityEntry } from './activity.model';
 import { ActivityDatabaseService } from './activity-database.service';
 
+interface ChartDay {
+  date: string;
+  label: string;
+  value: number;
+}
+
 @Component({
   selector: 'app-activity-history',
   standalone: true,
@@ -37,6 +43,44 @@ export class ActivityHistoryComponent implements OnInit {
       .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
   }
 
+  get chartDays(): ChartDay[] {
+    const activity = this.selectedActivity;
+    if (!activity) return [];
+
+    const end = this.toDate ? this.parseDate(this.toDate) : new Date();
+    const start = this.fromDate ? this.parseDate(this.fromDate) : new Date(end);
+    if (!this.fromDate) start.setDate(start.getDate() - 13);
+
+    const days: ChartDay[] = [];
+    const cursor = new Date(start);
+    while (cursor <= end && days.length < 366) {
+      const date = this.formatDate(cursor);
+      const dayEntries = this.filteredEntries.filter(entry => entry.date === date);
+      let value = 0;
+
+      if (activity.type === 'counter') {
+        value = dayEntries.reduce((sum, entry) => sum + (entry.value ?? 0), 0);
+      } else if (activity.type === 'habit') {
+        const successful = activity.settings.habit?.mode === 'avoid' ? 'success' : 'completed';
+        value = dayEntries.some(entry => entry.status === successful) ? 1 : 0;
+      } else {
+        value = dayEntries.length;
+      }
+
+      days.push({
+        date,
+        label: cursor.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
+        value
+      });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return days;
+  }
+
+  get chartMax(): number {
+    return Math.max(1, ...this.chartDays.map(day => day.value));
+  }
+
   get counterTotal(): number {
     return this.filteredEntries.reduce((sum, entry) => sum + (entry.value ?? 0), 0);
   }
@@ -60,11 +104,7 @@ export class ActivityHistoryComponent implements OnInit {
       .filter(entry => entry.status === successful)
       .map(entry => entry.date));
     let cursor = new Date();
-    // If today has not been marked yet, keep showing the streak through yesterday.
-    // An unmarked day is never interpreted as a failure.
-    if (!dates.has(this.formatDate(cursor))) {
-      cursor.setDate(cursor.getDate() - 1);
-    }
+    if (!dates.has(this.formatDate(cursor))) cursor.setDate(cursor.getDate() - 1);
     let streak = 0;
     while (dates.has(this.formatDate(cursor))) {
       streak++;
@@ -130,6 +170,11 @@ export class ActivityHistoryComponent implements OnInit {
     if (entry.status === 'success') return 'Удержался';
     if (entry.status === 'slipped') return 'Срыв';
     return 'Нет статуса';
+  }
+
+  private parseDate(value: string): Date {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day);
   }
 
   private formatDate(date: Date): string {
