@@ -1,41 +1,53 @@
+
 import {
+  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
-  inject,
-  model, ModelSignal,
+  OnDestroy,
   OnInit,
-  signal,
   ViewChild,
   ViewEncapsulation
 } from '@angular/core';
-import {MatCardModule} from '@angular/material/card';
-import {MatOption, provideNativeDateAdapter} from '@angular/material/core';
+import {NgForOf} from '@angular/common';
+import {MatOption} from '@angular/material/core';
 import {
   MatCalendar,
   MatCalendarCellClassFunction,
-  MatDatepickerInputEvent,
-  MatDatepickerModule, MatMonthView, MatYearView
+  MatDatepickerModule
 } from '@angular/material/datepicker';
-import {MatFormField} from '@angular/material/form-field';
-import {MatInputModule} from '@angular/material/input';
 import {MAT_DATE_LOCALE} from '@angular/material/core';
 import {MatButton} from '@angular/material/button';
 import {MatTooltip} from '@angular/material/tooltip';
 import {MatIconModule} from '@angular/material/icon';
 import {MatToolbar} from '@angular/material/toolbar';
-import {debounce, debounceTime, distinctUntilChanged, fromEvent, ObservableInput, Subject, takeUntil} from 'rxjs';
+import {MatFormField} from '@angular/material/form-field';
 import {MatSelect} from '@angular/material/select';
-import {NgForOf} from '@angular/common';
 import {MatProgressBar} from '@angular/material/progress-bar';
 import {MatDialog} from '@angular/material/dialog';
+import {Subscription} from 'rxjs';
 import {DialogComponent} from '../dialog/dialog.component';
 
-//import 'moment/locale/ja';
+interface ShotEntry {
+  date: string;
+  count: number;
+}
+
 @Component({
   selector: 'app-calendar',
-  providers: [provideNativeDateAdapter(),  {provide: MAT_DATE_LOCALE, useValue: 'ru-RU'},],
+  providers: [
+    {provide: MAT_DATE_LOCALE, useValue: 'ru-RU'}
+  ],
   imports: [
-    MatCardModule, MatDatepickerModule, MatFormField, MatInputModule, MatButton, MatTooltip, MatIconModule, MatToolbar, MatSelect, MatOption, NgForOf, MatProgressBar
+    MatDatepickerModule,
+    MatButton,
+    MatTooltip,
+    MatIconModule,
+    MatToolbar,
+    MatFormField,
+    MatSelect,
+    MatOption,
+    NgForOf,
+    MatProgressBar
   ],
   templateUrl: './calendar.component.html',
   standalone: true,
@@ -43,131 +55,232 @@ import {DialogComponent} from '../dialog/dialog.component';
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CalendarComponent implements OnInit {
-  today = new Date();
-  selectedDate: any;
-  selectedMonth: any = this.today.getMonth() ; // Инициализация текущим месяцем
-  numbers?: number[];
-  events = signal<string[]>([]);
-  private readonly _locale = signal(inject<unknown>(MAT_DATE_LOCALE));
-  selected = model<Date | null>(null);
-  private readonly  updateDate: Subject<Date> = new Subject<Date>();
-  private destroy$!: ObservableInput<any>;
-  shot_day!:number;
-  shot_mnt!: number;
-  shot_total!: number;
-  count_shot!: number;
+export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
+  readonly today = new Date();
 
-  @ViewChild(MatMonthView) monthView!: MatCalendar<Date>;
+  selectedDate: Date | null = new Date(
+    this.today.getFullYear(),
+    this.today.getMonth(),
+    this.today.getDate()
+  );
+
+  visibleMonth = new Date(
+    this.today.getFullYear(),
+    this.today.getMonth(),
+    1
+  );
+
+  count_shot = 1;
+
+  shot_day = 0;
+  shot_mnt = 0;
+  shot_total = 0;
+
+  private recordedDates = new Set<string>();
+  private calendarStateSubscription?: Subscription;
+
+  @ViewChild(MatCalendar) calendar!: MatCalendar<Date>;
+
   constructor(public dialog: MatDialog) {}
 
-  dateClass: MatCalendarCellClassFunction<Date> = (cellDate: any, view) => {
-    this.updateDate.next(cellDate);
-    if (view === 'month') {
-      const date = cellDate.getDate();
-      const month = cellDate.getMonth();
-      return this.numbers?.includes(date) && month === this.selectedMonth ? 'example-custom-date-class' : '';
+  dateClass: MatCalendarCellClassFunction<Date> = (cellDate, view) => {
+    if (view !== 'month') {
+      return '';
     }
-    return '';
+
+    return this.recordedDates.has(this.formatDate(cellDate))
+      ? 'example-custom-date-class'
+      : '';
+  };
+
+  ngOnInit(): void {
+    this.loadDates();
   }
 
-/*  dateClass2: MatCalendarCellClassFunction<Date | null> = (cellDate: any, view) => {
-    this.updateDate.next(cellDate);
-    if (view === 'month') {
-      const date = cellDate.getDate();
-      const month = cellDate.getMonth();
-      return this.numbers?.includes(date) && month === this.selectedMonth ? 'example-custom-date-class' : '';
+  ngAfterViewInit(): void {
+    // Отслеживаем переключение месяцев стрелками календаря.
+    this.calendarStateSubscription =
+      this.calendar.stateChanges.subscribe(() => {
+        const activeDate = this.calendar.activeDate;
+
+        this.visibleMonth = new Date(
+          activeDate.getFullYear(),
+          activeDate.getMonth(),
+          1
+        );
+
+        this.loadDates();
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.calendarStateSubscription?.unsubscribe();
+  }
+
+  onDateSelected(date: Date | null): void {
+    if (!date) {
+      return;
     }
-    return '';
-  }*/
-  //* Запись */
-  addDate() {
-    const today:any = this.selectedDate;
-    const month: any = this.selectedMonth;
-    const dateObj = {
-      date: this.selectedDate,
-      month: month,
-      count: this.count_shot,
-    };
-    const storedDates = JSON.parse(localStorage.getItem('dates') || '[]') ?? []; // Берем данные из Storage
-    /* Проверка на наличие в массиве записи с такой же датой */
-    const dateExists = storedDates.some((item: any) => item.date == today && item.month == month);
-    if (dateExists) {
-      /* Если уже есть такая дата, удалить и добавить новую */
-      const newDates = storedDates.filter((item: any) => item.date !== today || item.month !== month);
-      newDates.push(dateObj);
-      localStorage.setItem('dates', JSON.stringify(newDates));
+
+    this.selectedDate = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
+
+    this.visibleMonth = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      1
+    );
+
+    this.loadDates();
+  }
+
+  addDate(): void {
+    if (!this.selectedDate) {
+      return;
+    }
+
+    const count = Number(this.count_shot);
+
+    if (!Number.isFinite(count) || count < 0) {
+      return;
+    }
+
+    const dateKey = this.formatDate(this.selectedDate);
+    const entries = this.readStoredDates();
+
+    const existingIndex = entries.findIndex(
+      entry => entry.date === dateKey
+    );
+
+    if (existingIndex >= 0) {
+      entries[existingIndex] = {
+        date: dateKey,
+        count
+      };
     } else {
-      storedDates.push(dateObj);
-      localStorage.setItem('dates', JSON.stringify(storedDates));
+      entries.push({
+        date: dateKey,
+        count
+      });
     }
+
+    localStorage.setItem('dates', JSON.stringify(entries));
     this.loadDates();
   }
 
-  ngOnInit() {
-    this.loadDates();
+  loadDates(): void {
+    const entries = this.readStoredDates();
 
-    this.updateDate.pipe(
-      takeUntil(this.destroy$),
-      debounceTime(100),
-      distinctUntilChanged()
-    ).subscribe(()=>{console.log('update')})
+    this.recordedDates = new Set(
+      entries.map(entry => entry.date)
+    );
+
+    const year = this.visibleMonth.getFullYear();
+
+    const monthPrefix =
+      `${year}-${String(this.visibleMonth.getMonth() + 1).padStart(2, '0')}-`;
+
+    this.shot_day = this.selectedDate
+      ? entries.find(
+          entry => entry.date === this.formatDate(this.selectedDate!)
+        )?.count ?? 0
+      : 0;
+
+    // Сумма за отображаемый месяц.
+    this.shot_mnt = entries
+      .filter(entry => entry.date.startsWith(monthPrefix))
+      .reduce((total, entry) => total + entry.count, 0);
+
+    // Сумма только за год отображаемого месяца.
+    this.shot_total = entries
+      .filter(entry => Number(entry.date.slice(0, 4)) === year)
+      .reduce((total, entry) => total + entry.count, 0);
   }
 
-  ngAfterViewInit() {
-    //console.log(this.monthView)
-    fromEvent(document.querySelectorAll('.mat-calendar-previous-button, .mat-calendar-next-button'), 'click')
-      .pipe(debounceTime(100)).subscribe(()=>{console.log('click')}/*this.loadDates()*/);
+  private readStoredDates(): ShotEntry[] {
+    let stored: unknown;
 
-    /*this.monthView.monthSelected?.subscribe((event: Date) => {
-      this.monthSelected(event);
-    });*/
+    try {
+      stored = JSON.parse(localStorage.getItem('dates') || '[]');
+    } catch {
+      stored = [];
+    }
 
+    if (!Array.isArray(stored)) {
+      return [];
+    }
+
+    const currentYear = new Date().getFullYear();
+    const normalized = new Map<string, number>();
+
+    for (const item of stored) {
+      if (!item || typeof item !== 'object') {
+        continue;
+      }
+
+      let dateKey: string | null = null;
+
+      // Новый формат: YYYY-MM-DD.
+      if (
+        typeof item.date === 'string' &&
+        /^\d{4}-\d{2}-\d{2}$/.test(item.date)
+      ) {
+        dateKey = item.date;
+      }
+
+      // Старый формат: день + месяц, без года.
+      else if (
+        Number.isInteger(item.date) &&
+        Number.isInteger(item.month) &&
+        item.date >= 1 &&
+        item.date <= 31 &&
+        item.month >= 0 &&
+        item.month <= 11
+      ) {
+        const legacyDate = new Date(
+          currentYear,
+          item.month,
+          item.date
+        );
+
+        // Не допускаем автоматического переноса 31 февраля на март.
+        if (
+          legacyDate.getMonth() === item.month &&
+          legacyDate.getDate() === item.date
+        ) {
+          dateKey = this.formatDate(legacyDate);
+        }
+      }
+
+      const count = Number(item.count);
+
+      if (dateKey && Number.isFinite(count) && count >= 0) {
+        normalized.set(dateKey, count);
+      }
+    }
+
+    const entries = Array.from(
+      normalized,
+      ([date, count]) => ({date, count})
+    );
+
+    localStorage.setItem('dates', JSON.stringify(entries));
+
+    return entries;
   }
 
-  loadDates() {
-    const storedDates = JSON.parse(localStorage.getItem('dates') || '[]');
-    this.numbers = storedDates.filter((dateObj: any) => dateObj.month === this.selectedMonth).map((dateObj: any) => dateObj.date);
-    this.shot_day = storedDates.filter((dateObj: any) => dateObj.month === this.selectedMonth && dateObj.date === this.selectedDate).map((dateObj: any) => dateObj.count);
+  private formatDate(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
 
-    // За месяц
-    let m = 0
-      storedDates.filter((dateObj: any) => dateObj.month === this.selectedMonth).map((day: any)=>m+=Number(day.count))
-    this.shot_mnt = m
-
-    // За год
-    let t = 0
-      storedDates.map((day: any)=>t+=Number(day.count))
-    this.shot_total = t
+    return `${year}-${month}-${day}`;
   }
 
-  addEvent(type: string, event: MatDatepickerInputEvent<Date>) {
-    this.selectedDate = event.value?.getDate();
-    this.selectedMonth = event.value?.getMonth();
-    this.events.update(events => [...events, `${type}: ${event.value}`]);
-    this.loadDates();
-  }
-
-  monthSelected(event: Date) {
-    this.selectedMonth = event.getMonth();
-    this.loadDates();
-  }
-
-  nextMonth(event: any) {
-    //console.log(event)
-  }
-
-  datepickerOpened() {
-    //console.log('datepickerOpened');
-  }
-
-  openDialog() {
-    const dialogRef = this.dialog.open(DialogComponent);
-
-    dialogRef.afterClosed().subscribe(result => {
-      console.log(`Dialog result: ${result}`);
-    });
+  openDialog(): void {
+    this.dialog.open(DialogComponent);
   }
 }
-
-
