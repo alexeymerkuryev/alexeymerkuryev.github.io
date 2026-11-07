@@ -1,0 +1,138 @@
+<section class="history-page">
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">SHOTDAYS</p>
+      <h1>История и статистика</h1>
+      <p class="subtitle">Динамика и записи по каждой активности</p>
+    </div>
+  </header>
+
+  <p class="notice error" *ngIf="error" role="alert">{{ error }}</p>
+  <div class="loading" *ngIf="loading">Загружаем историю…</div>
+
+  <ng-container *ngIf="!loading">
+    <div class="empty-state" *ngIf="activities.length === 0">
+      <h2>Пока нечего анализировать</h2>
+      <p>Создай активность и добавь первые записи в календаре.</p>
+    </div>
+
+    <ng-container *ngIf="activities.length > 0">
+      <label class="activity-picker">
+        <span>Активность</span>
+        <select [(ngModel)]="selectedActivityId" (ngModelChange)="onActivityChange()">
+          <option *ngFor="let activity of activities" [value]="activity.id">{{ activity.name }}</option>
+        </select>
+      </label>
+
+      <section class="filters">
+        <label>
+          <span>С</span>
+          <input type="date" [(ngModel)]="fromDate">
+        </label>
+        <label>
+          <span>По</span>
+          <input type="date" [(ngModel)]="toDate">
+        </label>
+        <button type="button" class="clear-button" (click)="clearDates()">Сбросить период</button>
+      </section>
+
+      <ng-container *ngIf="selectedActivity as activity">
+        <section class="stats-grid">
+          <article class="stat-card" *ngIf="activity.type === 'counter'">
+            <span>Всего за период</span>
+            <strong>{{ counterTotal | number:'1.0-2' }} <small>{{ activity.unit }}</small></strong>
+          </article>
+          <article class="stat-card" *ngIf="activity.type === 'habit'">
+            <span>Успешных дней</span>
+            <strong>{{ successfulHabitDays }}</strong>
+          </article>
+          <article class="stat-card">
+            <span>Дней с записями</span>
+            <strong>{{ activeDays }}</strong>
+          </article>
+          <article class="stat-card" *ngIf="activity.type === 'habit'">
+            <span>Текущая серия</span>
+            <strong>{{ currentStreak }} <small>дн.</small></strong>
+          </article>
+          <article class="stat-card" *ngIf="activity.type === 'event'">
+            <span>Событий за период</span>
+            <strong>{{ filteredEntries.length }}</strong>
+          </article>
+          <article class="stat-card" *ngIf="activity.type === 'counter'">
+            <span>Записей за период</span>
+            <strong>{{ filteredEntries.length }}</strong>
+          </article>
+        </section>
+
+        <section class="stats-grid extended-stats">
+          <article class="stat-card">
+            <span>Среднее за активный день</span>
+            <strong>{{ averagePerActiveDay | number:'1.0-2' }}</strong>
+          </article>
+          <article class="stat-card">
+            <span>{{ activity.type === 'counter' ? 'Лучший день' : activity.type === 'habit' ? 'Максимум успешных дней' : 'Больше всего событий за день' }}</span>
+            <strong>{{ bestDay | number:'1.0-2' }} <small>{{ activity.unit || (activity.type === 'habit' ? 'дн.' : 'событий') }}</small></strong>
+          </article>
+        </section>
+
+        <section class="period-summaries">
+          <article class="period-card">
+            <h2>По неделям</h2>
+            <p class="period-empty" *ngIf="weeklySummary.length === 0">Нет данных</p>
+            <div class="period-row" *ngFor="let item of weeklySummary">
+              <span>{{ item.label }}</span><strong>{{ item.value | number:'1.0-2' }}</strong>
+            </div>
+          </article>
+          <article class="period-card">
+            <h2>По месяцам</h2>
+            <p class="period-empty" *ngIf="monthlySummary.length === 0">Нет данных</p>
+            <div class="period-row" *ngFor="let item of monthlySummary">
+              <span>{{ item.label }}</span><strong>{{ item.value | number:'1.0-2' }}</strong>
+            </div>
+          </article>
+        </section>
+
+        <section class="chart-card">
+          <div class="chart-heading">
+            <div>
+              <h2>Динамика</h2>
+              <p>{{ fromDate || 'Последние 14 дней' }}{{ toDate ? ' — ' + toDate : '' }}</p>
+            </div>
+            <span>{{ activity.type === 'counter' ? activity.unit : activity.type === 'habit' ? 'успешные дни' : 'события' }}</span>
+          </div>
+          <div class="chart-empty" *ngIf="!filteredEntries.length">За выбранный период пока нет данных для графика.</div>
+          <div class="bar-chart" *ngIf="filteredEntries.length">
+            <div class="bar-column" *ngFor="let day of chartDays" [class.has-value]="day.value > 0">
+              <strong class="bar-value" *ngIf="day.value > 0">{{ day.value | number:'1.0-1' }}</strong>
+              <div class="bar-track">
+                <div class="bar-fill" [style.height.%]="day.value / chartMax * 100"></div>
+              </div>
+              <span class="bar-label">{{ day.label }}</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="history-list">
+          <div class="history-heading">
+            <h2>Записи</h2>
+            <span>{{ filteredEntries.length }}</span>
+          </div>
+          <div class="empty-history" *ngIf="filteredEntries.length === 0">
+            За выбранный период записей нет.
+          </div>
+          <article class="history-row" *ngFor="let entry of filteredEntries">
+            <div class="entry-date">
+              <strong>{{ entry.date | date:'d MMM y':'':'ru' }}</strong>
+              <span>{{ entry.date }}</span>
+            </div>
+            <div class="entry-value">
+              {{ entryDescription(entry) }}
+              <p *ngIf="activity.type !== 'event' && entry.note">{{ entry.note }}</p>
+            </div>
+            <button type="button" class="delete-button" (click)="deleteEntry(entry)" aria-label="Удалить запись">Удалить</button>
+          </article>
+        </section>
+      </ng-container>
+    </ng-container>
+  </ng-container>
+</section>

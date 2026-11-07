@@ -1,14 +1,15 @@
 import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
-import {CalendarComponent} from './calendar/calendar.component';
+import { ActivityListComponent } from './activities/activity-list.component';
+import { CalendarComponent } from './calendar/calendar.component';
+import { ActivityHistoryComponent } from './activities/activity-history.component';
 
 @Component({
   selector: 'app-root',
-  imports: [/*RouterOutlet,*/ CalendarComponent,],
-  templateUrl: './app.component.html',
   standalone: true,
+  imports: [ActivityListComponent, CalendarComponent, ActivityHistoryComponent],
+  templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })
 export class AppComponent {
-  title = 'shot-days';
+  view: 'activities' | 'calendar' | 'history' = 'activities';
 }

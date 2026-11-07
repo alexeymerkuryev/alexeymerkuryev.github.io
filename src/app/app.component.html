@@ -1,1 +1,21 @@
-<app-calendar></app-calendar>
+<main>
+  <nav class="app-navigation" aria-label="Основная навигация">
+    <button type="button" [class.active]="view === 'activities'" (click)="view = 'activities'">
+      <span aria-hidden="true">▦</span> Активности
+    </button>
+    <button type="button" [class.active]="view === 'calendar'" (click)="view = 'calendar'">
+      <span aria-hidden="true">▣</span> Календарь
+    </button>
+    <button type="button" [class.active]="view === 'history'" (click)="view = 'history'">
+      <span aria-hidden="true">▤</span> История и статистика
+    </button>
+  </nav>
+
+  @if (view === 'activities') {
+    <app-activity-list></app-activity-list>
+  } @else if (view === 'calendar') {
+    <app-calendar></app-calendar>
+  } @else {
+    <app-activity-history></app-activity-history>
+  }
+</main>
