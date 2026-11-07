@@ -34,9 +34,9 @@ interface ShotEntry {
 
 @Component({
   selector: 'app-calendar',
-  providers: [
+  /* providers: [
     {provide: MAT_DATE_LOCALE, useValue: 'ru-RU'}
-  ],
+  ], */
   imports: [
     MatDatepickerModule,
     MatButton,
