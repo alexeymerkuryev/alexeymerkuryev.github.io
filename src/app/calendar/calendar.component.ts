@@ -1,4 +1,3 @@
-
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
@@ -8,48 +7,34 @@ import {
   ViewChild,
   ViewEncapsulation
 } from '@angular/core';
-import {NgForOf} from '@angular/common';
-import {MatOption} from '@angular/material/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import {
   MatCalendar,
   MatCalendarCellClassFunction,
   MatDatepickerModule
 } from '@angular/material/datepicker';
-import {MAT_DATE_LOCALE} from '@angular/material/core';
-import {MatButton} from '@angular/material/button';
-import {MatTooltip} from '@angular/material/tooltip';
-import {MatIconModule} from '@angular/material/icon';
-import {MatToolbar} from '@angular/material/toolbar';
-import { MatFormField, MatLabel } from '@angular/material/form-field';
-import {MatSelect} from '@angular/material/select';
-import {MatProgressBar} from '@angular/material/progress-bar';
-import {MatDialog} from '@angular/material/dialog';
-import {Subscription} from 'rxjs';
-import {DialogComponent} from '../dialog/dialog.component';
-
-interface ShotEntry {
-  date: string;
-  count: number;
-}
+import { MatButton } from '@angular/material/button';
+import { MatTooltip } from '@angular/material/tooltip';
+import { MatIconModule } from '@angular/material/icon';
+import { MatToolbar } from '@angular/material/toolbar';
+import { MatDialog } from '@angular/material/dialog';
+import { Subscription } from 'rxjs';
+import { DialogComponent } from '../dialog/dialog.component';
+import { ActivityDatabaseService } from '../activities/activity-database.service';
+import { Activity, ActivityEntry, HabitEntryStatus } from '../activities/activity.model';
 
 @Component({
   selector: 'app-calendar',
-  /* providers: [
-    {provide: MAT_DATE_LOCALE, useValue: 'ru-RU'}
-  ], */
   imports: [
+    CommonModule,
+    FormsModule,
     MatDatepickerModule,
     MatButton,
     MatTooltip,
     MatIconModule,
-    MatToolbar,
-    MatFormField,
-    MatSelect,
-    MatOption,
-    NgForOf,
-    MatProgressBar,
-    MatLabel
-],
+    MatToolbar
+  ],
   templateUrl: './calendar.component.html',
   standalone: true,
   styleUrl: './calendar.component.scss',
@@ -71,213 +56,167 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
     1
   );
 
-  count_shot = 1;
-
-  shot_day = 0;
-  shot_mnt = 0;
-  shot_total = 0;
-
+  activities: Activity[] = [];
+  entries: ActivityEntry[] = [];
   private recordedDates = new Set<string>();
   private calendarStateSubscription?: Subscription;
+  private refreshToken = 0;
+
+  counterValues: Record<string, number> = {};
+  quickValues: Record<string, number> = {};
+  eventNotes: Record<string, string> = {};
+  busyActivityIds = new Set<string>();
+  errorMessage = '';
 
   @ViewChild(MatCalendar) calendar!: MatCalendar<Date>;
 
-  constructor(public dialog: MatDialog) {}
+  constructor(
+    private readonly database: ActivityDatabaseService,
+    public dialog: MatDialog
+  ) {}
 
   dateClass: MatCalendarCellClassFunction<Date> = (cellDate, view) => {
-    if (view !== 'month') {
-      return '';
-    }
-
+    if (view !== 'month') return '';
     return this.recordedDates.has(this.formatDate(cellDate))
       ? 'example-custom-date-class'
       : '';
   };
 
-  ngOnInit(): void {
-    this.loadDates();
+  async ngOnInit(): Promise<void> {
+    await this.loadCalendarData();
   }
 
   ngAfterViewInit(): void {
-    // Отслеживаем переключение месяцев стрелками календаря.
-    this.calendarStateSubscription =
-      this.calendar.stateChanges.subscribe(() => {
-        const activeDate = this.calendar.activeDate;
-
-        this.visibleMonth = new Date(
-          activeDate.getFullYear(),
-          activeDate.getMonth(),
-          1
-        );
-
-        this.loadDates();
-      });
+    this.calendarStateSubscription = this.calendar.stateChanges.subscribe(() => {
+      const activeDate = this.calendar.activeDate;
+      this.visibleMonth = new Date(
+        activeDate.getFullYear(),
+        activeDate.getMonth(),
+        1
+      );
+      void this.loadCalendarData();
+    });
   }
 
   ngOnDestroy(): void {
     this.calendarStateSubscription?.unsubscribe();
   }
 
-  onDateSelected(date: Date | null): void {
-    if (!date) {
-      return;
-    }
-
-    this.selectedDate = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate()
-    );
-
-    this.visibleMonth = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      1
-    );
-
-    this.loadDates();
+  async onDateSelected(date: Date | null): Promise<void> {
+    if (!date) return;
+    this.selectedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    this.visibleMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+    this.errorMessage = '';
+    await this.loadCalendarData();
   }
 
-  addDate(): void {
-    if (!this.selectedDate) {
-      return;
-    }
-
-    const count = Number(this.count_shot);
-
-    if (!Number.isFinite(count) || count < 0) {
-      return;
-    }
-
-    const dateKey = this.formatDate(this.selectedDate);
-    const entries = this.readStoredDates();
-
-    const existingIndex = entries.findIndex(
-      entry => entry.date === dateKey
-    );
-
-    if (existingIndex >= 0) {
-      entries[existingIndex] = {
-        date: dateKey,
-        count
-      };
-    } else {
-      entries.push({
-        date: dateKey,
-        count
+  async addCounter(activity: Activity, value: number): Promise<void> {
+    if (!this.selectedDate || !Number.isFinite(value) || value <= 0) return;
+    await this.runForActivity(activity.id, async () => {
+      await this.database.addCounterEntry({
+        activityId: activity.id,
+        date: this.formatDate(this.selectedDate!),
+        value
       });
-    }
-
-    localStorage.setItem('dates', JSON.stringify(entries));
-    this.loadDates();
+      this.counterValues[activity.id] = 1;
+      await this.loadCalendarData();
+    });
   }
 
-  loadDates(): void {
-    const entries = this.readStoredDates();
-
-    this.recordedDates = new Set(
-      entries.map(entry => entry.date)
-    );
-
-    const year = this.visibleMonth.getFullYear();
-
-    const monthPrefix =
-      `${year}-${String(this.visibleMonth.getMonth() + 1).padStart(2, '0')}-`;
-
-    this.shot_day = this.selectedDate
-      ? entries.find(
-          entry => entry.date === this.formatDate(this.selectedDate!)
-        )?.count ?? 0
-      : 0;
-
-    // Сумма за отображаемый месяц.
-    this.shot_mnt = entries
-      .filter(entry => entry.date.startsWith(monthPrefix))
-      .reduce((total, entry) => total + entry.count, 0);
-
-    // Сумма только за год отображаемого месяца.
-    this.shot_total = entries
-      .filter(entry => Number(entry.date.slice(0, 4)) === year)
-      .reduce((total, entry) => total + entry.count, 0);
+  async setHabit(activity: Activity, status: HabitEntryStatus): Promise<void> {
+    if (!this.selectedDate) return;
+    await this.runForActivity(activity.id, async () => {
+      await this.database.setHabitStatus({
+        activityId: activity.id,
+        date: this.formatDate(this.selectedDate!),
+        status
+      });
+      await this.loadCalendarData();
+    });
   }
 
-  private readStoredDates(): ShotEntry[] {
-    let stored: unknown;
+  async addEvent(activity: Activity): Promise<void> {
+    if (!this.selectedDate) return;
+    await this.runForActivity(activity.id, async () => {
+      await this.database.addEventEntry({
+        activityId: activity.id,
+        date: this.formatDate(this.selectedDate!),
+        note: this.eventNotes[activity.id]?.trim() || undefined
+      });
+      this.eventNotes[activity.id] = '';
+      await this.loadCalendarData();
+    });
+  }
 
+  async deleteEntry(entry: ActivityEntry): Promise<void> {
+    if (!window.confirm('Удалить эту запись?')) return;
     try {
-      stored = JSON.parse(localStorage.getItem('dates') || '[]');
-    } catch {
-      stored = [];
+      await this.database.deleteEntry(entry.id);
+      await this.loadCalendarData();
+    } catch (error) {
+      this.errorMessage = this.getErrorMessage(error);
     }
-
-    if (!Array.isArray(stored)) {
-      return [];
-    }
-
-    const currentYear = new Date().getFullYear();
-    const normalized = new Map<string, number>();
-
-    for (const item of stored) {
-      if (!item || typeof item !== 'object') {
-        continue;
-      }
-
-      let dateKey: string | null = null;
-
-      // Новый формат: YYYY-MM-DD.
-      if (
-        typeof item.date === 'string' &&
-        /^\d{4}-\d{2}-\d{2}$/.test(item.date)
-      ) {
-        dateKey = item.date;
-      }
-
-      // Старый формат: день + месяц, без года.
-      else if (
-        Number.isInteger(item.date) &&
-        Number.isInteger(item.month) &&
-        item.date >= 1 &&
-        item.date <= 31 &&
-        item.month >= 0 &&
-        item.month <= 11
-      ) {
-        const legacyDate = new Date(
-          currentYear,
-          item.month,
-          item.date
-        );
-
-        // Не допускаем автоматического переноса 31 февраля на март.
-        if (
-          legacyDate.getMonth() === item.month &&
-          legacyDate.getDate() === item.date
-        ) {
-          dateKey = this.formatDate(legacyDate);
-        }
-      }
-
-      const count = Number(item.count);
-
-      if (dateKey && Number.isFinite(count) && count >= 0) {
-        normalized.set(dateKey, count);
-      }
-    }
-
-    const entries = Array.from(
-      normalized,
-      ([date, count]) => ({date, count})
-    );
-
-    localStorage.setItem('dates', JSON.stringify(entries));
-
-    return entries;
   }
 
-  private formatDate(date: Date): string {
+  entriesFor(activityId: string): ActivityEntry[] {
+    return this.entries.filter(entry => entry.activityId === activityId);
+  }
+
+  activityName(activityId: string): string {
+    return this.activities.find(activity => activity.id === activityId)?.name ?? 'Активность';
+  }
+
+  habitStatus(activityId: string): HabitEntryStatus | undefined {
+    return this.entriesFor(activityId).find(entry => entry.status)?.status;
+  }
+
+  async loadCalendarData(): Promise<void> {
+    const token = ++this.refreshToken;
+    try {
+      const [activities, allEntries] = await Promise.all([
+        this.database.getActivities(),
+        this.database.getEntriesForActivity('__all__').catch(() => [])
+      ]);
+      // Fetching by date is sufficient for the selected-day view; month markers
+      // are built from the activity histories below.
+      const histories = await Promise.all(
+        activities.map(activity => this.database.getEntriesForActivity(activity.id))
+      );
+      if (token !== this.refreshToken) return;
+
+      this.activities = activities;
+      const history = histories.flat();
+      this.recordedDates = new Set(history.map(entry => entry.date));
+      this.entries = this.selectedDate
+        ? history.filter(entry => entry.date === this.formatDate(this.selectedDate!))
+        : [];
+      void allEntries;
+    } catch (error) {
+      this.errorMessage = this.getErrorMessage(error);
+    }
+  }
+
+  private async runForActivity(activityId: string, action: () => Promise<void>): Promise<void> {
+    if (this.busyActivityIds.has(activityId)) return;
+    this.busyActivityIds.add(activityId);
+    this.errorMessage = '';
+    try {
+      await action();
+    } catch (error) {
+      this.errorMessage = this.getErrorMessage(error);
+    } finally {
+      this.busyActivityIds.delete(activityId);
+    }
+  }
+
+  private getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : 'Не удалось сохранить запись.';
+  }
+
+  formatDate(date: Date): string {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-
     return `${year}-${month}-${day}`;
   }
 
