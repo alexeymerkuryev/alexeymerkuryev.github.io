@@ -1,6 +1,7 @@
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   OnDestroy,
   OnInit,
@@ -72,6 +73,7 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
 
   constructor(
     private readonly database: ActivityDatabaseService,
+    private readonly changeDetector: ChangeDetectorRef,
     public dialog: MatDialog
   ) {}
 
@@ -162,6 +164,10 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.entries.filter(entry => entry.activityId === activityId);
   }
 
+  counterTotal(activityId: string): number {
+    return this.entriesFor(activityId).reduce((total, entry) => total + (entry.value ?? 0), 0);
+  }
+
   activityName(activityId: string): string {
     return this.activities.find(activity => activity.id === activityId)?.name ?? 'Активность';
   }
@@ -173,10 +179,7 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
   async loadCalendarData(): Promise<void> {
     const token = ++this.refreshToken;
     try {
-      const [activities, allEntries] = await Promise.all([
-        this.database.getActivities(),
-        this.database.getEntriesForActivity('__all__').catch(() => [])
-      ]);
+      const activities = await this.database.getActivities();
       // Fetching by date is sufficient for the selected-day view; month markers
       // are built from the activity histories below.
       const histories = await Promise.all(
@@ -190,9 +193,10 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
       this.entries = this.selectedDate
         ? history.filter(entry => entry.date === this.formatDate(this.selectedDate!))
         : [];
-      void allEntries;
+      this.changeDetector.markForCheck();
     } catch (error) {
       this.errorMessage = this.getErrorMessage(error);
+      this.changeDetector.markForCheck();
     }
   }
 
