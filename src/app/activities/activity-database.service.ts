@@ -127,6 +127,26 @@ export class ActivityDatabaseService {
     return id;
   }
 
+  async addEventEntry(input: {
+    activityId: string;
+    date: string;
+    note?: string;
+  }): Promise<string> {
+    this.assertDate(input.date);
+    await this.requireActivity(input.activityId, 'event');
+    const now = new Date().toISOString();
+    const id = this.createId();
+    await this.db.entries.add({
+      id,
+      activityId: input.activityId,
+      date: input.date,
+      note: input.note,
+      createdAt: now,
+      updatedAt: now
+    });
+    return id;
+  }
+
   async updateEntry(id: string, changes: Partial<Pick<ActivityEntry, 'date' | 'value' | 'status' | 'note'>>): Promise<void> {
     const entry = await this.db.entries.get(id);
     if (!entry) throw new Error('Запись не найдена.');
