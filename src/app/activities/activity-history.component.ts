@@ -81,6 +81,75 @@ export class ActivityHistoryComponent implements OnInit {
     return Math.max(1, ...this.chartDays.map(day => day.value));
   }
 
+
+  get averagePerActiveDay(): number {
+    const values = this.dailyValues;
+    const active = values.filter(value => value > 0);
+    return active.length ? active.reduce((sum, value) => sum + value, 0) / active.length : 0;
+  }
+
+  get bestDay(): number {
+    return Math.max(0, ...this.dailyValues);
+  }
+
+  get weeklySummary(): Array<{ label: string; value: number }> {
+    return this.groupedSummary('week');
+  }
+
+  get monthlySummary(): Array<{ label: string; value: number }> {
+    return this.groupedSummary('month');
+  }
+
+  get dailyValues(): number[] {
+    const activity = this.selectedActivity;
+    if (!activity) return [];
+    const grouped = new Map<string, number>();
+    for (const entry of this.filteredEntries) {
+      let value = 1;
+      if (activity.type === 'counter') value = entry.value ?? 0;
+      if (activity.type === 'habit') {
+        const success = activity.settings.habit?.mode === 'avoid' ? 'success' : 'completed';
+        value = entry.status === success ? 1 : 0;
+      }
+      grouped.set(entry.date, (grouped.get(entry.date) ?? 0) + value);
+    }
+    return [...grouped.values()];
+  }
+
+  private groupedSummary(period: 'week' | 'month'): Array<{ label: string; value: number }> {
+    const activity = this.selectedActivity;
+    if (!activity) return [];
+    const groups = new Map<string, { label: string; value: number; sort: string }>();
+    for (const entry of this.filteredEntries) {
+      const date = this.parseDate(entry.date);
+      let key: string;
+      let label: string;
+      if (period === 'month') {
+        key = entry.date.slice(0, 7);
+        label = date.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+      } else {
+        const monday = new Date(date);
+        const weekday = (monday.getDay() + 6) % 7;
+        monday.setDate(monday.getDate() - weekday);
+        key = this.formatDate(monday);
+        const sunday = new Date(monday);
+        sunday.setDate(sunday.getDate() + 6);
+        label = monday.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) +
+          ' — ' + sunday.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+      }
+      let amount = 1;
+      if (activity.type === 'counter') amount = entry.value ?? 0;
+      if (activity.type === 'habit') {
+        const success = activity.settings.habit?.mode === 'avoid' ? 'success' : 'completed';
+        amount = entry.status === success ? 1 : 0;
+      }
+      const group = groups.get(key) ?? { label, value: 0, sort: key };
+      group.value += amount;
+      groups.set(key, group);
+    }
+    return [...groups.values()].sort((a, b) => b.sort.localeCompare(a.sort)).slice(0, 12);
+  }
+
   get counterTotal(): number {
     return this.filteredEntries.reduce((sum, entry) => sum + (entry.value ?? 0), 0);
   }
