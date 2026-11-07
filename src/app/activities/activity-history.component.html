@@ -64,6 +64,26 @@
           </article>
         </section>
 
+        <section class="chart-card">
+          <div class="chart-heading">
+            <div>
+              <h2>Динамика</h2>
+              <p>{{ fromDate || 'Последние 14 дней' }}{{ toDate ? ' — ' + toDate : '' }}</p>
+            </div>
+            <span>{{ activity.type === 'counter' ? activity.unit : activity.type === 'habit' ? 'успешные дни' : 'события' }}</span>
+          </div>
+          <div class="chart-empty" *ngIf="!filteredEntries.length">За выбранный период пока нет данных для графика.</div>
+          <div class="bar-chart" *ngIf="filteredEntries.length">
+            <div class="bar-column" *ngFor="let day of chartDays" [class.has-value]="day.value > 0">
+              <strong class="bar-value" *ngIf="day.value > 0">{{ day.value | number:'1.0-1' }}</strong>
+              <div class="bar-track">
+                <div class="bar-fill" [style.height.%]="day.value / chartMax * 100"></div>
+              </div>
+              <span class="bar-label">{{ day.label }}</span>
+            </div>
+          </div>
+        </section>
+
         <section class="history-list">
           <div class="history-heading">
             <h2>Записи</h2>
