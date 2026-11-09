@@ -75,6 +75,35 @@
           </article>
         </section>
 
+        <section class="comparison-section">
+          <h2>Сравнение с предыдущим периодом</h2>
+          <div class="comparison-grid">
+            <article class="comparison-card">
+              <h3>Эта неделя</h3>
+              <p class="comparison-period">{{ weeklyComparison.currentLabel }}</p>
+              <strong>{{ weeklyComparison.current | number:'1.0-2' }} <small>{{ weeklyComparison.unit }}</small></strong>
+              <div class="comparison-previous">Прошлая: {{ weeklyComparison.previous | number:'1.0-2' }} {{ weeklyComparison.unit }} ({{ weeklyComparison.previousLabel }})</div>
+              <div class="comparison-delta" [class.positive]="weeklyComparison.delta > 0" [class.negative]="weeklyComparison.delta < 0">
+                {{ weeklyComparison.delta > 0 ? '+' : '' }}{{ weeklyComparison.delta | number:'1.0-2' }} {{ weeklyComparison.unit }}
+                <span *ngIf="weeklyComparison.percent !== null">({{ weeklyComparison.percent > 0 ? '+' : '' }}{{ weeklyComparison.percent | number:'1.0-1' }}%)</span>
+                <span *ngIf="weeklyComparison.percent === null">· нет базы для процента</span>
+              </div>
+            </article>
+            <article class="comparison-card">
+              <h3>Этот месяц</h3>
+              <p class="comparison-period">{{ monthlyComparison.currentLabel }}</p>
+              <strong>{{ monthlyComparison.current | number:'1.0-2' }} <small>{{ monthlyComparison.unit }}</small></strong>
+              <div class="comparison-previous">Предыдущий: {{ monthlyComparison.previous | number:'1.0-2' }} {{ monthlyComparison.unit }} ({{ monthlyComparison.previousLabel }})</div>
+              <div class="comparison-delta" [class.positive]="monthlyComparison.delta > 0" [class.negative]="monthlyComparison.delta < 0">
+                {{ monthlyComparison.delta > 0 ? '+' : '' }}{{ monthlyComparison.delta | number:'1.0-2' }} {{ monthlyComparison.unit }}
+                <span *ngIf="monthlyComparison.percent !== null">({{ monthlyComparison.percent > 0 ? '+' : '' }}{{ monthlyComparison.percent | number:'1.0-1' }}%)</span>
+                <span *ngIf="monthlyComparison.percent === null">· нет базы для процента</span>
+              </div>
+            </article>
+          </div>
+          <p class="comparison-note">Сравнение идёт за одинаковую часть периода: с начала недели или месяца по сегодняшний день.</p>
+        </section>
+
         <section class="period-summaries">
           <article class="period-card">
             <h2>По неделям</h2>
