@@ -59,3 +59,21 @@ select, input { box-sizing: border-box; width: 100%; min-width: 0; border: 1px s
 @media (max-width: 600px) {
   .period-summaries { grid-template-columns: 1fr; }
 }
+
+
+.comparison-section { margin: 0 0 22px; }
+.comparison-section > h2 { margin: 0 0 12px; font-size: 18px; }
+.comparison-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.comparison-card { min-width: 0; padding: 16px; border: 1px solid #43364f; border-radius: 14px; background: linear-gradient(145deg, #30253a, #211a2b); }
+.comparison-card h3 { margin: 0; color: #f4edf8; font-size: 15px; }
+.comparison-period { margin: 5px 0 13px; color: #91869b; font-size: 11px; }
+.comparison-card > strong { display: block; color: #fff; font-size: 27px; font-variant-numeric: tabular-nums; }
+.comparison-card > strong small { color: #c6b5d3; font-size: 12px; font-weight: 500; }
+.comparison-previous { margin-top: 8px; color: #aaa0b3; font-size: 11px; }
+.comparison-delta { margin-top: 10px; color: #c9bed2; font-size: 12px; font-weight: 650; }
+.comparison-delta.positive { color: #80d5ad; }
+.comparison-delta.negative { color: #e99aa8; }
+.comparison-note { margin: 9px 0 0; color: #91869b; font-size: 11px; }
+@media (max-width: 600px) {
+  .comparison-grid { grid-template-columns: 1fr; }
+}
