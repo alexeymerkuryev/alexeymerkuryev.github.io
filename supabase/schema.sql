@@ -109,3 +109,6 @@ create policy "Users can delete their own entries"
   on public.activity_entries for delete
   to authenticated
   using (user_id = (select auth.uid()));
+
+grant select, insert, update, delete on public.activities to authenticated;
+grant select, insert, update, delete on public.activity_entries to authenticated;
