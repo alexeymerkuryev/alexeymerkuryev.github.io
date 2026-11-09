@@ -72,12 +72,16 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
     public dialog: MatDialog
   ) {}
 
-  dateClass: MatCalendarCellClassFunction<Date> = (cellDate, view) => {
-    if (view !== 'month') return '';
-    return this.recordedDates.has(this.formatDate(cellDate))
-      ? 'example-custom-date-class'
-      : '';
-  };
+  dateClass: MatCalendarCellClassFunction<Date> = this.createDateClass();
+
+  private createDateClass(): MatCalendarCellClassFunction<Date> {
+    return (cellDate, view) => {
+      if (view !== 'month') return '';
+      return this.recordedDates.has(this.formatDate(cellDate))
+        ? 'example-custom-date-class'
+        : '';
+    };
+  }
 
   async ngOnInit(): Promise<void> {
     await this.loadCalendarData();
@@ -182,6 +186,8 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
       this.activities = activities;
       const history = histories.flat();
       this.recordedDates = new Set(history.map(entry => entry.date));
+      // Force MatCalendar month view to recalculate its dateClass input.
+      this.dateClass = this.createDateClass();
       this.entries = this.selectedDate
         ? history.filter(entry => entry.date === this.formatDate(this.selectedDate!))
         : [];
