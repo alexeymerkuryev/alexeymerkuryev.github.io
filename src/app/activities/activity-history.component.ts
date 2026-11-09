@@ -4,6 +4,16 @@ import { FormsModule } from '@angular/forms';
 import { Activity, ActivityEntry } from './activity.model';
 import { ActivityDatabaseService } from './activity-database.service';
 
+interface PeriodComparison {
+  current: number;
+  previous: number;
+  delta: number;
+  percent: number | null;
+  currentLabel: string;
+  previousLabel: string;
+  unit: string;
+}
+
 interface ChartDay {
   date: string;
   label: string;
@@ -148,6 +158,73 @@ export class ActivityHistoryComponent implements OnInit {
       groups.set(key, group);
     }
     return [...groups.values()].sort((a, b) => b.sort.localeCompare(a.sort)).slice(0, 12);
+  }
+
+  get weeklyComparison(): PeriodComparison {
+    return this.buildComparison('week');
+  }
+
+  get monthlyComparison(): PeriodComparison {
+    return this.buildComparison('month');
+  }
+
+  private buildComparison(period: 'week' | 'month'): PeriodComparison {
+    const activity = this.selectedActivity;
+    const today = new Date();
+    const currentStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const currentEnd = new Date(currentStart);
+    let previousStart: Date;
+    let previousEnd: Date;
+
+    if (period === 'week') {
+      const weekday = (currentStart.getDay() + 6) % 7;
+      currentStart.setDate(currentStart.getDate() - weekday);
+      previousStart = new Date(currentStart);
+      previousStart.setDate(previousStart.getDate() - 7);
+      previousEnd = new Date(currentEnd);
+      previousEnd.setDate(previousEnd.getDate() - 7);
+    } else {
+      const dayOfMonth = currentStart.getDate();
+      currentStart.setDate(1);
+      previousStart = new Date(currentStart.getFullYear(), currentStart.getMonth() - 1, 1);
+      const previousMonthLastDay = new Date(
+        previousStart.getFullYear(), previousStart.getMonth() + 1, 0
+      ).getDate();
+      previousEnd = new Date(
+        previousStart.getFullYear(), previousStart.getMonth(),
+        Math.min(dayOfMonth, previousMonthLastDay)
+      );
+    }
+
+    const current = activity ? this.valueForRange(activity, currentStart, currentEnd) : 0;
+    const previous = activity ? this.valueForRange(activity, previousStart, previousEnd) : 0;
+    const delta = current - previous;
+    return {
+      current, previous, delta,
+      percent: previous === 0 ? null : (delta / previous) * 100,
+      currentLabel: this.rangeLabel(currentStart, currentEnd),
+      previousLabel: this.rangeLabel(previousStart, previousEnd),
+      unit: activity?.type === 'counter' ? (activity.unit || 'ед.')
+        : activity?.type === 'habit' ? 'дн.' : 'событ.'
+    };
+  }
+
+  private valueForRange(activity: Activity, from: Date, to: Date): number {
+    const start = this.formatDate(from);
+    const end = this.formatDate(to);
+    const inRange = this.entries.filter(entry => entry.date >= start && entry.date <= end);
+    if (activity.type === 'counter') {
+      return inRange.reduce((sum, entry) => sum + (entry.value ?? 0), 0);
+    }
+    if (activity.type === 'event') return inRange.length;
+    const successful = activity.settings.habit?.mode === 'avoid' ? 'success' : 'completed';
+    return new Set(inRange.filter(entry => entry.status === successful).map(entry => entry.date)).size;
+  }
+
+  private rangeLabel(from: Date, to: Date): string {
+    const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
+    return from.toLocaleDateString('ru-RU', options) + ' — ' +
+      to.toLocaleDateString('ru-RU', options);
   }
 
   get counterTotal(): number {
