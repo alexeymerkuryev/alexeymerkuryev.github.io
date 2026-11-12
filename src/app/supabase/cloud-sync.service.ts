@@ -12,6 +12,7 @@ export class CloudSyncService {
   private readonly syncStateSubject = new BehaviorSubject<string>('Ожидание входа');
   private readonly lastSyncSubject = new BehaviorSubject<Date | null>(null);
   private syncPromise: Promise<void> | null = null;
+  private syncAgain = false;
 
   readonly user$ = this.userSubject.asObservable();
   readonly syncState$ = this.syncStateSubject.asObservable();
@@ -82,7 +83,10 @@ export class CloudSyncService {
   async syncNow(): Promise<void> {
     const user = this.userSubject.value;
     if (!user) return;
-    if (this.syncPromise) return this.syncPromise;
+    if (this.syncPromise) {
+      this.syncAgain = true;
+      return this.syncPromise;
+    }
 
     this.syncStateSubject.next('Синхронизация…');
     this.syncPromise = this.performSync(user.id)
@@ -97,6 +101,10 @@ export class CloudSyncService {
       })
       .finally(() => {
         this.syncPromise = null;
+        if (this.syncAgain) {
+          this.syncAgain = false;
+          void this.syncNow();
+        }
       });
 
     return this.syncPromise;
@@ -108,21 +116,47 @@ export class CloudSyncService {
     await this.database.claimCloudOwner(userId);
 
     const tombstones = await this.database.getSyncTombstones();
-    const deletedEntries = tombstones
-      .filter(item => item.entity === 'entry')
-      .map(item => item.entityId);
-    const deletedActivities = tombstones
-      .filter(item => item.entity === 'activity')
-      .map(item => item.entityId);
-
-    if (deletedEntries.length) {
-      const { error } = await this.client.from('activity_entries')
-        .delete().eq('user_id', userId).in('id', deletedEntries);
+    if (tombstones.length) {
+      const deletionRows = tombstones.map(item => ({
+        user_id: userId,
+        entity: item.entity,
+        entity_id: item.entityId,
+        deleted_at: item.deletedAt
+      }));
+      const { error } = await this.client.from('sync_deletions')
+        .upsert(deletionRows, { onConflict: 'user_id,entity,entity_id' });
       if (error) throw error;
     }
-    if (deletedActivities.length) {
+
+    // Deletion markers live in the cloud so removals propagate to every device.
+    const { data: remoteDeletions, error: deletionsError } = await this.client
+      .from('sync_deletions')
+      .select('entity, entity_id')
+      .eq('user_id', userId);
+    if (deletionsError) throw deletionsError;
+
+    const deletedEntries = new Set<string>();
+    const deletedActivities = new Set<string>();
+    for (const deletion of (remoteDeletions ?? []) as any[]) {
+      if (deletion.entity === 'entry') deletedEntries.add(deletion.entity_id);
+      if (deletion.entity === 'activity') deletedActivities.add(deletion.entity_id);
+    }
+
+    for (const id of deletedEntries) {
+      await this.database.removeEntryFromCloud(id);
+    }
+    for (const id of deletedActivities) {
+      await this.database.removeActivityFromCloud(id);
+    }
+
+    if (deletedEntries.size) {
+      const { error } = await this.client.from('activity_entries')
+        .delete().eq('user_id', userId).in('id', [...deletedEntries]);
+      if (error) throw error;
+    }
+    if (deletedActivities.size) {
       const { error } = await this.client.from('activities')
-        .delete().eq('user_id', userId).in('id', deletedActivities);
+        .delete().eq('user_id', userId).in('id', [...deletedActivities]);
       if (error) throw error;
     }
 
