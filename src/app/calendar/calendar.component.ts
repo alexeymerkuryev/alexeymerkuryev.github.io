@@ -97,10 +97,10 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
         activeDate.getMonth(),
         1
       );
-      void this.loadCalendarData();
+      // Month navigation must not reload the database or mutate activeDate.
+      // Doing so here creates a stateChanges -> load -> refresh -> stateChanges loop.
+      this.changeDetector.markForCheck();
     });
-    // Data may have arrived before MatCalendar finished its first render.
-    void this.refreshCalendarView();
   }
 
   ngOnDestroy(): void {
@@ -207,7 +207,6 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
         ? history.filter(entry => entry.date === this.formatDate(this.selectedDate!))
         : [];
       this.changeDetector.markForCheck();
-      await this.refreshCalendarView();
     } catch (error) {
       this.errorMessage = this.getErrorMessage(error);
       this.changeDetector.markForCheck();
@@ -241,14 +240,6 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
     style.textContent = rules.join('\n');
   }
 
-  private async refreshCalendarView(): Promise<void> {
-    await Promise.resolve();
-    if (!this.calendar) return;
-    this.dateClass = this.createDateClass();
-    this.calendar.activeDate = new Date(this.calendar.activeDate);
-    this.calendar.updateTodaysDate();
-    this.changeDetector.detectChanges();
-  }
 
   countdown(date: string): string {
     const target = new Date(date + 'T00:00:00');
