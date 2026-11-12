@@ -1,6 +1,9 @@
 <main>
   <app-cloud-account></app-cloud-account>
   <nav class="app-navigation" aria-label="Основная навигация">
+    <button type="button" [class.active]="view === 'dashboard'" (click)="view = 'dashboard'">
+      <span aria-hidden="true">⌂</span> Обзор
+    </button>
     <button type="button" [class.active]="view === 'activities'" (click)="view = 'activities'">
       <span aria-hidden="true">▦</span> Активности
     </button>
@@ -8,11 +11,13 @@
       <span aria-hidden="true">▣</span> Календарь
     </button>
     <button type="button" [class.active]="view === 'history'" (click)="view = 'history'">
-      <span aria-hidden="true">▤</span> История и статистика
+      <span aria-hidden="true">▤</span> История
     </button>
   </nav>
 
-  @if (view === 'activities') {
+  @if (view === 'dashboard') {
+    <app-dashboard></app-dashboard>
+  } @else if (view === 'activities') {
     <app-activity-list></app-activity-list>
   } @else if (view === 'calendar') {
     <app-calendar></app-calendar>
