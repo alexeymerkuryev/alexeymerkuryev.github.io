@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import Dexie, { Table } from 'dexie';
+import { Subject } from 'rxjs';
 import {
   Activity,
   ActivityEntry,
@@ -9,10 +10,18 @@ import {
   AppSetting
 } from './activity.model';
 
+interface SyncTombstone {
+  id?: number;
+  entity: 'activity' | 'entry';
+  entityId: string;
+  deletedAt: string;
+}
+
 class ShotDaysDatabase extends Dexie {
   activities!: Table<Activity, string>;
   entries!: Table<ActivityEntry, string>;
   settings!: Table<AppSetting, string>;
+  syncQueue!: Table<SyncTombstone, number>;
 
   constructor() {
     super('ShotDaysDatabase');
@@ -20,6 +29,12 @@ class ShotDaysDatabase extends Dexie {
       activities: 'id, name, type, createdAt',
       entries: 'id, activityId, date, [activityId+date]',
       settings: 'key'
+    });
+    this.version(2).stores({
+      activities: 'id, name, type, createdAt',
+      entries: 'id, activityId, date, [activityId+date]',
+      settings: 'key',
+      syncQueue: '++id, entity, entityId, deletedAt'
     });
   }
 }
@@ -35,6 +50,38 @@ export class ActivityDatabaseService {
   private readonly db = new ShotDaysDatabase();
   private readonly migrationKey = 'migration.legacy-shots.v1';
   private readonly legacyActivityId = 'legacy-photography';
+  readonly changes$ = new Subject<void>();
+
+  async getAllEntries(): Promise<ActivityEntry[]> {
+    return this.db.entries.toArray();
+  }
+
+  async claimCloudOwner(userId: string): Promise<void> {
+    const setting = await this.db.settings.get('cloud.owner');
+    const owner = setting?.value;
+    if (typeof owner === 'string' && owner !== userId) {
+      throw new Error('Локальные данные уже привязаны к другому аккаунту. Синхронизация для этого аккаунта заблокирована, чтобы не смешать данные.');
+    }
+    if (!setting) {
+      await this.db.settings.put({ key: 'cloud.owner', value: userId });
+    }
+  }
+
+  async getSyncTombstones(): Promise<SyncTombstone[]> {
+    return this.db.syncQueue.toArray();
+  }
+
+  async clearSyncTombstones(ids: number[]): Promise<void> {
+    if (ids.length) await this.db.syncQueue.bulkDelete(ids);
+  }
+
+  async putActivityFromCloud(activity: Activity): Promise<void> {
+    await this.db.activities.put(activity);
+  }
+
+  async putEntryFromCloud(entry: ActivityEntry): Promise<void> {
+    await this.db.entries.put(entry);
+  }
 
   async initialize(): Promise<void> {
     await this.db.open();
@@ -78,6 +125,7 @@ export class ActivityDatabaseService {
       updatedAt: now
     };
     await this.db.activities.add(activity);
+    this.changes$.next();
     return id;
   }
 
@@ -92,13 +140,20 @@ export class ActivityDatabaseService {
       name,
       updatedAt: new Date().toISOString()
     });
+    this.changes$.next();
   }
 
   async deleteActivity(id: string): Promise<void> {
-    await this.db.transaction('rw', this.db.activities, this.db.entries, async () => {
+    await this.db.transaction('rw', this.db.activities, this.db.entries, this.db.syncQueue, async () => {
       await this.db.entries.where('activityId').equals(id).delete();
       await this.db.activities.delete(id);
+      await this.db.syncQueue.add({
+        entity: 'activity',
+        entityId: id,
+        deletedAt: new Date().toISOString()
+      });
     });
+    this.changes$.next();
   }
 
   async addCounterEntry(input: {
@@ -124,6 +179,7 @@ export class ActivityDatabaseService {
       createdAt: now,
       updatedAt: now
     });
+    this.changes$.next();
     return id;
   }
 
@@ -144,6 +200,7 @@ export class ActivityDatabaseService {
       createdAt: now,
       updatedAt: now
     });
+    this.changes$.next();
     return id;
   }
 
@@ -155,10 +212,19 @@ export class ActivityDatabaseService {
       throw new Error('Значение должно быть неотрицательным числом.');
     }
     await this.db.entries.update(id, { ...changes, updatedAt: new Date().toISOString() });
+    this.changes$.next();
   }
 
   async deleteEntry(id: string): Promise<void> {
-    await this.db.entries.delete(id);
+    await this.db.transaction('rw', this.db.entries, this.db.syncQueue, async () => {
+      await this.db.entries.delete(id);
+      await this.db.syncQueue.add({
+        entity: 'entry',
+        entityId: id,
+        deletedAt: new Date().toISOString()
+      });
+    });
+    this.changes$.next();
   }
 
   async getEntriesForDate(date: string, activityId?: string): Promise<ActivityEntry[]> {
@@ -216,6 +282,7 @@ export class ActivityDatabaseService {
         });
       }
     });
+    this.changes$.next();
   }
 
   private async migrateLegacyShots(): Promise<void> {
