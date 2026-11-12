@@ -112,3 +112,45 @@ create policy "Users can delete their own entries"
 
 grant select, insert, update, delete on public.activities to authenticated;
 grant select, insert, update, delete on public.activity_entries to authenticated;
+
+
+-- Persistent deletion markers keep removals synchronized across devices.
+create table if not exists public.sync_deletions (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  entity text not null check (entity in ('activity', 'entry')),
+  entity_id text not null,
+  deleted_at timestamptz not null default now(),
+  primary key (user_id, entity, entity_id)
+);
+
+create index if not exists sync_deletions_user_idx
+  on public.sync_deletions (user_id, deleted_at);
+
+alter table public.sync_deletions enable row level security;
+
+drop policy if exists "Users can read their own sync deletions" on public.sync_deletions;
+create policy "Users can read their own sync deletions"
+  on public.sync_deletions for select
+  to authenticated
+  using (user_id = (select auth.uid()));
+
+drop policy if exists "Users can insert their own sync deletions" on public.sync_deletions;
+create policy "Users can insert their own sync deletions"
+  on public.sync_deletions for insert
+  to authenticated
+  with check (user_id = (select auth.uid()));
+
+drop policy if exists "Users can update their own sync deletions" on public.sync_deletions;
+create policy "Users can update their own sync deletions"
+  on public.sync_deletions for update
+  to authenticated
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
+
+drop policy if exists "Users can delete their own sync deletions" on public.sync_deletions;
+create policy "Users can delete their own sync deletions"
+  on public.sync_deletions for delete
+  to authenticated
+  using (user_id = (select auth.uid()));
+
+grant select, insert, update, delete on public.sync_deletions to authenticated;
