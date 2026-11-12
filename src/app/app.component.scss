@@ -6,3 +6,5 @@
   .app-navigation { justify-content: flex-start; gap: 4px; padding: 8px 8px; overflow-x: auto; }
   .app-navigation button { flex: 0 0 auto; gap: 5px; min-height: 36px; padding: 0 10px; font-size: 11px; }
 }
+
+.app-navigation button:focus-visible { outline: 2px solid #d6a3f3; outline-offset: 2px; }
