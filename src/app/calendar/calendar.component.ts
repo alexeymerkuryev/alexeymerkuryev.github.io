@@ -229,7 +229,7 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
         ? ['50%']
         : safeColors.map((_color, index) => `${((index + 1) * 100) / (safeColors.length + 1)}%`);
       const dots = safeColors.map((color, index) => `radial-gradient(circle at ${positions[index]} 88%, ${color} 0 2px, transparent 2.5px)`).join(', ');
-      rules.push(`button.activity-date-${date.replace(/-/g, '')} { background-image: ${dots} !important; background-repeat: no-repeat !important; }`);
+      rules.push(`.activity-date-${date.replace(/-/g, '')} .mat-calendar-body-cell-content { background-image: ${dots}; background-repeat: no-repeat; }`);
     }
     let style = document.getElementById('shotdays-calendar-date-colors') as HTMLStyleElement | null;
     if (!style) {
