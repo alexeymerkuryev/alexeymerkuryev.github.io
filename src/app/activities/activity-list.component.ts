@@ -108,7 +108,7 @@ export class ActivityListComponent implements OnInit {
       this.error = 'Цель должна быть неотрицательным числом.';
       return;
     }
-    if (this.type === 'event' && this.eventDate && !/^\\d{4}-\\d{2}-\\d{2}$/.test(this.eventDate)) {
+    if (this.type === 'event' && this.eventDate && !/^\d{4}-\d{2}-\d{2}$/.test(this.eventDate)) {
       this.error = 'Проверь дату события.';
       return;
     }
