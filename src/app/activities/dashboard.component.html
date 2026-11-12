@@ -1,0 +1,97 @@
+<section class="dashboard-page">
+  <header class="dashboard-heading">
+    <div>
+      <p class="eyebrow">SHOTDAYS · ТВОЙ ПРОГРЕСС</p>
+      <h1>Обзор</h1>
+      <p class="subtitle">{{ todayLabel }}</p>
+    </div>
+    <div class="today-badge"><span>{{ recordedTodayCount }}</span><small>активностей<br>сегодня</small></div>
+  </header>
+
+  <p class="dashboard-error" *ngIf="error" role="alert">{{ error }}</p>
+  <div class="loading" *ngIf="loading">Собираем твой обзор…</div>
+
+  <ng-container *ngIf="!loading">
+    <section class="overview-grid">
+      <article class="overview-card">
+        <span class="card-kicker">ПРИВЫЧКИ СЕГОДНЯ</span>
+        <strong>{{ todayHabitsCompleted }}<small> / {{ todayHabitsTotal }}</small></strong>
+        <p>{{ todayHabitsTotal ? 'выполнено или отмечено успешно' : 'Добавь привычку, чтобы следить за сериями' }}</p>
+      </article>
+      <article class="overview-card">
+        <span class="card-kicker">ВСЕГО ЗАПИСЕЙ</span>
+        <strong>{{ totalEntries }}</strong>
+        <p>Сохранено в твоей истории</p>
+      </article>
+    </section>
+
+    <section class="dashboard-section" *ngIf="upcomingEvents.length">
+      <div class="section-heading">
+        <div><p class="eyebrow">НА ГОРИЗОНТЕ</p><h2>Ближайшие события</h2></div>
+      </div>
+      <div class="event-list">
+        <article class="event-card" *ngFor="let item of upcomingEvents">
+          <div class="activity-icon" [style.background]="item.activity.color || '#49345a'">
+            {{ item.activity.icon || '◷' }}
+          </div>
+          <div class="event-info">
+            <strong>{{ item.activity.name }}</strong>
+            <span>{{ item.date | date:'d MMMM y':'':'ru' }}</span>
+          </div>
+          <div class="event-countdown">{{ countdownLabel(item.daysLeft) }}</div>
+        </article>
+      </div>
+    </section>
+
+    <section class="dashboard-section" *ngIf="habitSummaries.length">
+      <div class="section-heading">
+        <div><p class="eyebrow">РИТМ И РЕГУЛЯРНОСТЬ</p><h2>Привычки</h2></div>
+        <span class="section-count">{{ habitSummaries.length }}</span>
+      </div>
+      <div class="habit-list">
+        <article class="habit-card" *ngFor="let item of habitSummaries">
+          <div class="activity-icon" [style.background]="item.activity.color || '#49345a'">
+            {{ item.activity.icon || '✓' }}
+          </div>
+          <div class="habit-info">
+            <strong>{{ item.activity.name }}</strong>
+            <span>{{ item.statusLabel }}</span>
+          </div>
+          <div class="streak" *ngIf="item.streak">
+            <strong>{{ item.streak }}</strong><span>дн. подряд</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="dashboard-section" *ngIf="counterSummaries.length">
+      <div class="section-heading">
+        <div><p class="eyebrow">ДВИЖЕНИЕ К ЦЕЛЯМ</p><h2>Прогресс</h2></div>
+      </div>
+      <div class="goal-list">
+        <article class="goal-card" *ngFor="let item of counterSummaries">
+          <div class="goal-heading">
+            <div class="activity-icon" [style.background]="item.activity.color || '#49345a'">
+              {{ item.activity.icon || '↗' }}
+            </div>
+            <div class="goal-info"><strong>{{ item.activity.name }}</strong><span>{{ item.periodLabel }}</span></div>
+            <strong class="goal-value">{{ item.total | number:'1.0-2' }} / {{ item.target }} {{ item.unit }}</strong>
+          </div>
+          <div class="progress-track"><div class="progress-fill" [style.width.%]="item.progress" [style.background]="item.activity.color || '#c18ae8'"></div></div>
+          <span class="progress-label">{{ item.progress }}% от цели</span>
+        </article>
+      </div>
+    </section>
+
+    <section class="dashboard-empty" *ngIf="!activities.length">
+      <div class="empty-mark">✳</div>
+      <h2>Начнём с первой активности</h2>
+      <p>Создай счётчик, привычку или событие — и здесь появится твой личный обзор.</p>
+    </section>
+
+    <section class="dashboard-empty" *ngIf="activities.length && !upcomingEvents.length && !habitSummaries.length && !counterSummaries.length">
+      <h2>Обзор готов к наполнению</h2>
+      <p>Добавь привычки, запланируй событие или задай цель для счётчика, чтобы видеть прогресс на главном экране.</p>
+    </section>
+  </ng-container>
+</section>
