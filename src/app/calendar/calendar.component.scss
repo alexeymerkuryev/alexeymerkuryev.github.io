@@ -199,3 +199,36 @@ footer {
   .manual-entry button { grid-column: 1 / -1; }
   .event-controls { flex-direction: column; }
 }
+
+/* Make the active date visually distinct from activity markers. */
+.mat-calendar-body-cell-content.mat-calendar-body-selected {
+  background-color: #f4eaff !important;
+  color: #261536 !important;
+  border: 2px solid #a55aff !important;
+  box-sizing: border-box;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px rgba(165, 90, 255, 0.22);
+}
+
+.mat-calendar-body-cell-content.mat-calendar-body-selected:hover,
+.mat-calendar-body-cell-content.mat-calendar-body-selected:focus {
+  background-color: #ead8ff !important;
+}
+
+.intro {
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+mat-dialog-content h3 {
+  margin: 22px 0 8px;
+}
+
+mat-dialog-content p,
+mat-dialog-content li {
+  line-height: 1.55;
+}
+
+mat-dialog-content ul {
+  padding-left: 22px;
+}
