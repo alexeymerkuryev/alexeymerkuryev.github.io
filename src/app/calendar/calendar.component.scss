@@ -7,11 +7,12 @@
   ));
 }
 
-button.example-custom-date-class {
-  background: #a55aff !important;
-  color: #ffffff !important;
+button.activity-date-marked {
   border-radius: 50%;
+  position: relative;
 }
+button.activity-date-marked:not(.mat-calendar-body-selected) { background-color: rgba(165, 90, 255, 0.10) !important; }
+button.activity-date-marked.mat-calendar-body-selected { color: #fff !important; }
 
 button { cursor: pointer; }
 .example-spacer { flex: 1 1 auto; }
