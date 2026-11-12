@@ -7,10 +7,15 @@
   ));
 }
 
-button.example-custom-date-class {
-  background: #a55aff !important;
-  color: #ffffff !important;
+/* MatCalendar dateClass is applied to the table cell, not its button. */
+.activity-date-marked .mat-calendar-body-cell-content {
   border-radius: 50%;
+}
+.activity-date-marked:not(.mat-calendar-body-selected) .mat-calendar-body-cell-content {
+  background-color: rgba(165, 90, 255, 0.10);
+}
+.activity-date-marked.mat-calendar-body-selected .mat-calendar-body-cell-content {
+  color: #fff;
 }
 
 button { cursor: pointer; }

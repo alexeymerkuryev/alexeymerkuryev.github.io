@@ -17,6 +17,7 @@ export interface ActivitySettings {
   target?: number;
   targetPeriod?: 'day' | 'week' | 'month';
   habit?: HabitSettings;
+  eventDate?: string;
 }
 
 export interface Activity {

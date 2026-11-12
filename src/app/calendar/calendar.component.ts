@@ -56,6 +56,7 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
   activities: Activity[] = [];
   entries: ActivityEntry[] = [];
   private recordedDates = new Set<string>();
+  private dateColors = new Map<string, string[]>();
   private calendarStateSubscription?: Subscription;
   private refreshToken = 0;
 
@@ -77,8 +78,9 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
   private createDateClass(): MatCalendarCellClassFunction<Date> {
     return (cellDate, view) => {
       if (view !== 'month') return '';
-      return this.recordedDates.has(this.formatDate(cellDate))
-        ? 'example-custom-date-class'
+      const date = this.formatDate(cellDate);
+      return this.recordedDates.has(date)
+        ? 'activity-date-marked activity-date-' + date.replace(/-/g, '')
         : '';
     };
   }
@@ -95,8 +97,13 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
         activeDate.getMonth(),
         1
       );
-      void this.loadCalendarData();
+      // Month navigation must not reload the database or mutate activeDate.
+      this.changeDetector.markForCheck();
     });
+
+    // Data can finish loading before or after the calendar view is created.
+    // Refresh once the MatCalendar instance is available.
+    this.refreshCalendarPresentation();
   }
 
   ngOnDestroy(): void {
@@ -176,8 +183,6 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
     const token = ++this.refreshToken;
     try {
       const activities = await this.database.getActivities();
-      // Fetching by date is sufficient for the selected-day view; month markers
-      // are built from the activity histories below.
       const histories = await Promise.all(
         activities.map(activity => this.database.getEntriesForActivity(activity.id))
       );
@@ -186,16 +191,76 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
       this.activities = activities;
       const history = histories.flat();
       this.recordedDates = new Set(history.map(entry => entry.date));
-      // Force MatCalendar month view to recalculate its dateClass input.
+      this.dateColors = new Map<string, string[]>();
+      for (const entry of history) {
+        const activity = activities.find(item => item.id === entry.activityId);
+        this.addDateColor(entry.date, activity?.color ?? '#a55aff');
+      }
+      for (const activity of activities) {
+        if (activity.type === 'event' && activity.settings.eventDate) {
+          this.addDateColor(activity.settings.eventDate, activity.color ?? '#a55aff');
+          this.recordedDates.add(activity.settings.eventDate);
+        }
+      }
       this.dateClass = this.createDateClass();
+      this.updateDateStyleRules();
       this.entries = this.selectedDate
         ? history.filter(entry => entry.date === this.formatDate(this.selectedDate!))
         : [];
       this.changeDetector.markForCheck();
+      this.refreshCalendarPresentation();
     } catch (error) {
       this.errorMessage = this.getErrorMessage(error);
       this.changeDetector.markForCheck();
     }
+  }
+
+  /**
+   * updateTodaysDate emits MatCalendar.stateChanges and marks its internal
+   * calendar view for refresh. This re-evaluates dateClass after async history
+   * loading without navigating or changing the selected date.
+   */
+  private refreshCalendarPresentation(): void {
+    if (!this.calendar) return;
+    this.calendar.updateTodaysDate();
+    this.changeDetector.markForCheck();
+  }
+
+  private addDateColor(date: string, color: string): void {
+    const colors = this.dateColors.get(date) ?? [];
+    if (!colors.includes(color)) colors.push(color);
+    this.dateColors.set(date, colors);
+    this.recordedDates.add(date);
+  }
+
+  private updateDateStyleRules(): void {
+    if (typeof document === 'undefined') return;
+    const rules: string[] = [];
+    for (const [date, colors] of this.dateColors) {
+      const safeColors = colors.slice(0, 5).map(color => /^#[0-9a-fA-F]{6}$/.test(color) ? color : '#a55aff');
+      const positions = safeColors.length === 1
+        ? ['50%']
+        : safeColors.map((_color, index) => `${((index + 1) * 100) / (safeColors.length + 1)}%`);
+      const dots = safeColors.map((color, index) => `radial-gradient(circle at ${positions[index]} 88%, ${color} 0 2px, transparent 2.5px)`).join(', ');
+      rules.push(`.activity-date-${date.replace(/-/g, '')} .mat-calendar-body-cell-content { background-image: ${dots}; background-repeat: no-repeat; }`);
+    }
+    let style = document.getElementById('shotdays-calendar-date-colors') as HTMLStyleElement | null;
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'shotdays-calendar-date-colors';
+      document.head.appendChild(style);
+    }
+    style.textContent = rules.join('\n');
+  }
+
+  countdown(date: string): string {
+    const target = new Date(date + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const days = Math.round((target.getTime() - today.getTime()) / 86400000);
+    if (days === 0) return 'Сегодня';
+    if (days < 0) return 'Прошло ' + Math.abs(days) + ' дн.';
+    return 'Осталось ' + days + ' дн.';
   }
 
   private async runForActivity(activityId: string, action: () => Promise<void>): Promise<void> {

@@ -35,6 +35,9 @@ export class ActivityListComponent implements OnInit {
   habitMode: HabitMode = 'build';
   scheduleType: 'daily' | 'weekly' = 'daily';
   daysPerWeek = 3;
+  icon = '';
+  color = '#a55aff';
+  eventDate = '';
 
   constructor(private readonly database: ActivityDatabaseService) {}
 
@@ -73,6 +76,9 @@ export class ActivityListComponent implements OnInit {
     this.daysPerWeek = activity.settings.habit?.schedule.type === 'weekly'
       ? activity.settings.habit.schedule.daysPerWeek
       : 3;
+    this.icon = activity.icon ?? '';
+    this.color = activity.color ?? '#a55aff';
+    this.eventDate = activity.settings.eventDate ?? '';
     this.error = '';
     this.editorOpen = true;
   }
@@ -102,8 +108,13 @@ export class ActivityListComponent implements OnInit {
       this.error = 'Цель должна быть неотрицательным числом.';
       return;
     }
+    if (this.type === 'event' && this.eventDate && !/^\d{4}-\d{2}-\d{2}$/.test(this.eventDate)) {
+      this.error = 'Проверь дату события.';
+      return;
+    }
 
     const settings: Activity['settings'] = {};
+    if (this.type === 'event' && this.eventDate) settings.eventDate = this.eventDate;
     if (this.target !== null) {
       settings.target = this.target;
       settings.targetPeriod = this.targetPeriod;
@@ -124,6 +135,8 @@ export class ActivityListComponent implements OnInit {
         type: this.type,
         inputMode: this.inputMode,
         unit: this.type === 'counter' ? this.unit.trim() : undefined,
+        icon: this.icon.trim() || undefined,
+        color: this.color,
         settings
       };
       if (this.editingId) {
@@ -176,6 +189,16 @@ export class ActivityListComponent implements OnInit {
     return activity.id;
   }
 
+  countdown(date: string): string {
+    const target = new Date(date + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const days = Math.round((target.getTime() - today.getTime()) / 86400000);
+    if (days === 0) return 'Сегодня';
+    if (days < 0) return 'Прошло ' + Math.abs(days) + ' дн.';
+    return 'Осталось ' + days + ' дн.';
+  }
+
   private resetEditor(): void {
     this.editingId = null;
     this.name = '';
@@ -188,6 +211,9 @@ export class ActivityListComponent implements OnInit {
     this.habitMode = 'build';
     this.scheduleType = 'daily';
     this.daysPerWeek = 3;
+    this.icon = '';
+    this.color = '#a55aff';
+    this.eventDate = '';
   }
 
   private message(error: unknown, fallback: string): string {

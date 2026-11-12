@@ -34,9 +34,12 @@
         <article class="activity-entry-card">
           <div class="activity-card-heading">
             <div>
-              <h3>{{ activity.name }}</h3>
+              <h3>{{ activity.icon || '•' }} {{ activity.name }}</h3>
               @if (activity.description) {
                 <p class="activity-description">{{ activity.description }}</p>
+              }
+              @if (activity.type === 'event' && activity.settings.eventDate) {
+                <p class="activity-description">{{ activity.settings.eventDate | date:'d MMMM y' }} · {{ countdown(activity.settings.eventDate) }}</p>
               }
             </div>
             <span class="activity-type">{{ activity.type === 'counter' ? 'Счётчик' : activity.type === 'habit' ? 'Привычка' : 'Событие' }}</span>

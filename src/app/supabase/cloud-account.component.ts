@@ -9,6 +9,20 @@ import { CloudSyncService } from './cloud-sync.service';
   imports: [CommonModule, FormsModule],
   template: `
     <section class="cloud-panel">
+      <header class="cloud-summary">
+        <div class="summary-copy">
+          <strong>☁ Облачная синхронизация</strong>
+          @if (sync.user$ | async; as summaryUser) {
+            <span>{{ summaryUser.email }} · {{ sync.syncState$ | async }}</span>
+          } @else {
+            <span>Данные хранятся локально и доступны офлайн</span>
+          }
+        </div>
+        <button type="button" class="collapse-button" (click)="toggleExpanded()" [attr.aria-expanded]="expanded">
+          {{ expanded ? 'Свернуть' : 'Настроить' }}
+        </button>
+      </header>
+      @if (expanded) {
       @if (sync.user$ | async; as user) {
         <div class="account-row">
           <div class="account-info">
@@ -42,10 +56,15 @@ import { CloudSyncService } from './cloud-sync.service';
       }
       @if (message) { <p class="message">{{ message }}</p> }
       @if (error) { <p class="error">{{ error }}</p> }
+      }
     </section>
   `,
   styles: [`
-    .cloud-panel { margin: 12px auto; padding: 14px 16px; max-width: 980px; color: #eee6f1; background: #211b28; border: 1px solid #44364d; border-radius: 14px; }
+    .cloud-panel { margin: 8px auto; padding: 10px 14px; max-width: 980px; color: #eee6f1; background: #211b28; border: 1px solid #44364d; border-radius: 14px; }
+    .cloud-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .summary-copy { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .summary-copy span { color: #b7aaba; font-size: 11px; overflow-wrap: anywhere; }
+    .collapse-button { flex: 0 0 auto; }
     .auth-heading, .account-info { display: flex; flex-direction: column; gap: 4px; }
     .auth-heading span, .account-info span, .account-info small { color: #b7aaba; font-size: 12px; }
     form { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
@@ -68,8 +87,16 @@ export class CloudAccountComponent {
   busy = false;
   error = '';
   message = '';
+  expanded = false;
 
-  constructor(public readonly sync: CloudSyncService) {}
+  constructor(public readonly sync: CloudSyncService) {
+    try { this.expanded = localStorage.getItem('shotdays.cloud-panel-expanded') === 'true'; } catch { this.expanded = false; }
+  }
+
+  toggleExpanded(): void {
+    this.expanded = !this.expanded;
+    try { localStorage.setItem('shotdays.cloud-panel-expanded', String(this.expanded)); } catch { /* storage may be unavailable */ }
+  }
 
   toggleMode(): void {
     this.mode = this.mode === 'signin' ? 'signup' : 'signin';

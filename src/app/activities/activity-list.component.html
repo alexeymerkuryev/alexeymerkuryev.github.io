@@ -20,9 +20,9 @@
 
   <div class="activity-list" *ngIf="!loading && activities.length">
     <article class="activity-card" *ngFor="let activity of activities; trackBy: trackById">
-      <div class="activity-symbol" [class.counter]="activity.type === 'counter'"
-           [class.habit]="activity.type === 'habit'" [class.event]="activity.type === 'event'">
-        {{ activity.type === 'counter' ? '↗' : activity.type === 'habit' ? '✓' : '◷' }}
+      <div class="activity-symbol" [style.background]="activity.color || '#38304e'"
+           [style.color]="'#ffffff'">
+        {{ activity.icon || (activity.type === 'counter' ? '↗' : activity.type === 'habit' ? '✓' : '◷') }}
       </div>
       <div class="activity-info">
         <div class="activity-title-row">
@@ -33,6 +33,9 @@
         <p class="meta" *ngIf="activity.type === 'counter'">{{ activity.unit }} · {{ inputModeLabel(activity.inputMode) }}</p>
         <p class="meta" *ngIf="activity.type === 'habit'">{{ habitSummary(activity) }} · {{ inputModeLabel(activity.inputMode) }}</p>
         <p class="meta" *ngIf="activity.type === 'event'">{{ inputModeLabel(activity.inputMode) }}</p>
+        <p class="meta event-countdown" *ngIf="activity.type === 'event' && activity.settings.eventDate">
+          {{ activity.settings.eventDate | date:'d MMMM y' }} · {{ countdown(activity.settings.eventDate) }}
+        </p>
         <p class="meta target" *ngIf="activity.settings.target !== undefined">
           Цель: {{ activity.settings.target }} {{ activity.type === 'counter' ? activity.unit : '' }}
           / {{ activity.settings.targetPeriod === 'week' ? 'неделю' : activity.settings.targetPeriod === 'month' ? 'месяц' : 'день' }}
@@ -89,6 +92,11 @@
           <input name="unit" [(ngModel)]="unit" maxlength="20" placeholder="км, кадров, страниц">
         </label>
 
+        <label class="field" *ngIf="type === 'event'">
+          <span>Дата события для обратного отсчёта</span>
+          <input type="date" name="eventDate" [(ngModel)]="eventDate">
+        </label>
+
         <fieldset class="field" *ngIf="type === 'habit'">
           <legend>Режим привычки</legend>
           <div class="segmented">
@@ -118,6 +126,17 @@
             <input type="number" name="daysPerWeek" [(ngModel)]="daysPerWeek" min="1" max="7">
           </label>
         </fieldset>
+
+        <div class="appearance-fields">
+          <label class="field">
+            <span>Иконка (эмодзи)</span>
+            <input name="icon" [(ngModel)]="icon" maxlength="8" placeholder="Например, 🚴">
+          </label>
+          <label class="field color-field">
+            <span>Цвет активности</span>
+            <input type="color" name="color" [(ngModel)]="color">
+          </label>
+        </div>
 
         <label class="field">
           <span>Способ внесения</span>
