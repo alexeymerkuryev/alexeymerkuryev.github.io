@@ -69,3 +69,8 @@ button { font: inherit; cursor: pointer; }
   .type-option small { grid-column: 2; }
   .editor-panel { padding: 18px; }
 }
+
+.appearance-fields { display: grid; grid-template-columns: 1fr 110px; gap: 12px; align-items: end; }
+.field.color-field input[type=color] { width: 100%; height: 43px; padding: 4px; cursor: pointer; }
+.event-countdown { color: #e6c3ff; font-weight: 700; }
+@media (max-width: 430px) { .appearance-fields { grid-template-columns: 1fr 90px; } }
