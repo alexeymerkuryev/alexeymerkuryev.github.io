@@ -50,3 +50,24 @@ h1 { margin: 0; font-size: clamp(30px, 7vw, 42px); letter-spacing: -.045em; }
   .goal-value { max-width: 120px; font-size: 10px; }
   .event-countdown { font-size: 10px; }
 }
+
+.quick-action-list { display: grid; gap: 10px; }
+.quick-action-card { display: grid; gap: 12px; padding: 14px 15px; border: 1px solid #3b3243; border-radius: 17px; background: #211b28; }
+.quick-action-heading { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.quick-action-info { display: grid; min-width: 0; flex: 1; gap: 4px; }
+.quick-action-info strong { overflow: hidden; color: #f1eaf5; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.quick-action-info span { color: #a99caf; font-size: 11px; }
+.quick-action-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.action-button { min-height: 36px; padding: 7px 13px; border: 1px solid #51405f; border-radius: 10px; color: #eee3f4; background: #30243a; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.action-button.success { border-color: #426b58; color: #c6f1d5; background: #20382d; }
+.action-button.danger { border-color: #74414b; color: #ffd0d5; background: #40252d; }
+.action-button.selected { outline: 2px solid #d8b1f1; outline-offset: 1px; }
+.action-button.primary { border-color: #9b6cbb; color: #fff; background: #684486; }
+.action-button:disabled { opacity: .5; cursor: wait; }
+.counter-quick-controls { display: grid; gap: 10px; }
+.counter-manual { display: flex; gap: 8px; }
+.counter-manual input { width: 100%; min-width: 0; padding: 8px 10px; border: 1px solid #51405f; border-radius: 10px; color: #f4eef8; background: #17131d; font: inherit; }
+@media (max-width: 560px) {
+  .quick-action-card { padding: 12px 10px; }
+  .counter-manual input { flex: 1; }
+}

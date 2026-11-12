@@ -1,5 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { Activity, ActivityEntry, HabitEntryStatus } from './activity.model';
 import { ActivityDatabaseService } from './activity-database.service';
@@ -29,7 +30,7 @@ interface UpcomingEvent {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
 })
@@ -38,6 +39,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   entries: ActivityEntry[] = [];
   loading = true;
   error = '';
+  counterInputs: Record<string, number> = {};
+  readonly busyActivityIds = new Set<string>();
   today = new Date();
   private changesSubscription?: Subscription;
 
@@ -60,6 +63,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
       ]);
       this.activities = activities;
       this.entries = entries;
+      for (const activity of activities) {
+        if (activity.type === 'counter' && this.counterInputs[activity.id] === undefined) {
+          this.counterInputs[activity.id] = 1;
+        }
+      }
       this.today = new Date();
       this.error = '';
     } catch (error) {
@@ -127,6 +135,52 @@ export class DashboardComponent implements OnInit, OnDestroy {
       .filter(item => item.daysLeft >= 0)
       .sort((a, b) => a.daysLeft - b.daysLeft)
       .slice(0, 4);
+  }
+
+
+  get quickCounters(): Activity[] {
+    return this.activities.filter(activity => activity.type === 'counter');
+  }
+
+  get quickHabits(): HabitSummary[] {
+    return this.habitSummaries;
+  }
+
+  async addCounter(activity: Activity, value: number): Promise<void> {
+    if (!Number.isFinite(value) || value <= 0 || this.busyActivityIds.has(activity.id)) return;
+    this.busyActivityIds.add(activity.id);
+    this.error = '';
+    try {
+      await this.database.addCounterEntry({
+        activityId: activity.id,
+        date: this.formatDate(this.today),
+        value
+      });
+      this.counterInputs[activity.id] = 1;
+      await this.refresh();
+    } catch (error) {
+      this.error = error instanceof Error ? error.message : 'Не удалось сохранить значение счётчика.';
+    } finally {
+      this.busyActivityIds.delete(activity.id);
+    }
+  }
+
+  async setHabit(activity: Activity, status: HabitEntryStatus): Promise<void> {
+    if (this.busyActivityIds.has(activity.id)) return;
+    this.busyActivityIds.add(activity.id);
+    this.error = '';
+    try {
+      await this.database.setHabitStatus({
+        activityId: activity.id,
+        date: this.formatDate(this.today),
+        status
+      });
+      await this.refresh();
+    } catch (error) {
+      this.error = error instanceof Error ? error.message : 'Не удалось отметить привычку.';
+    } finally {
+      this.busyActivityIds.delete(activity.id);
+    }
   }
 
   get recordedTodayCount(): number {

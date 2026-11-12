@@ -25,6 +25,77 @@
       </article>
     </section>
 
+
+    <section class="dashboard-section quick-actions" *ngIf="quickHabits.length || quickCounters.length">
+      <div class="section-heading">
+        <div><p class="eyebrow">БЕЗ ЛИШНИХ ПЕРЕХОДОВ</p><h2>Быстрые действия</h2></div>
+      </div>
+
+      <div class="quick-action-list">
+        <article class="quick-action-card" *ngFor="let item of quickHabits">
+          <div class="quick-action-heading">
+            <div class="activity-icon" [style.background]="item.activity.color || '#49345a'">
+              {{ item.activity.icon || '✓' }}
+            </div>
+            <div class="quick-action-info">
+              <strong>{{ item.activity.name }}</strong>
+              <span>{{ item.statusLabel }}</span>
+            </div>
+          </div>
+          <div class="quick-action-buttons">
+            <ng-container *ngIf="item.activity.settings.habit?.mode === 'avoid'; else buildHabitActions">
+              <button type="button" class="action-button success"
+                [class.selected]="item.status === 'success'"
+                [disabled]="busyActivityIds.has(item.activity.id)"
+                (click)="setHabit(item.activity, 'success')">Удержался</button>
+              <button type="button" class="action-button danger"
+                [class.selected]="item.status === 'slipped'"
+                [disabled]="busyActivityIds.has(item.activity.id)"
+                (click)="setHabit(item.activity, 'slipped')">Срыв</button>
+            </ng-container>
+            <ng-template #buildHabitActions>
+              <button type="button" class="action-button success"
+                [class.selected]="item.status === 'completed'"
+                [disabled]="busyActivityIds.has(item.activity.id)"
+                (click)="setHabit(item.activity, 'completed')">Выполнено</button>
+              <button type="button" class="action-button danger"
+                [class.selected]="item.status === 'missed'"
+                [disabled]="busyActivityIds.has(item.activity.id)"
+                (click)="setHabit(item.activity, 'missed')">Не выполнено</button>
+            </ng-template>
+          </div>
+        </article>
+
+        <article class="quick-action-card" *ngFor="let activity of quickCounters">
+          <div class="quick-action-heading">
+            <div class="activity-icon" [style.background]="activity.color || '#49345a'">
+              {{ activity.icon || '↗' }}
+            </div>
+            <div class="quick-action-info">
+              <strong>{{ activity.name }}</strong>
+              <span>{{ activity.unit }}</span>
+            </div>
+          </div>
+          <div class="counter-quick-controls">
+            <div class="quick-action-buttons" *ngIf="activity.inputMode !== 'manual'">
+              <button type="button" class="action-button amount-button"
+                *ngFor="let amount of [1, 5, 10]"
+                [disabled]="busyActivityIds.has(activity.id)"
+                (click)="addCounter(activity, amount)">+{{ amount }}</button>
+            </div>
+            <div class="counter-manual" *ngIf="activity.inputMode !== 'quick'">
+              <input type="number" min="0.01" step="any"
+                [attr.aria-label]="'Количество для ' + activity.name"
+                [(ngModel)]="counterInputs[activity.id]">
+              <button type="button" class="action-button primary"
+                [disabled]="busyActivityIds.has(activity.id)"
+                (click)="addCounter(activity, counterInputs[activity.id])">Добавить</button>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
     <section class="dashboard-section" *ngIf="upcomingEvents.length">
       <div class="section-heading">
         <div><p class="eyebrow">НА ГОРИЗОНТЕ</p><h2>Ближайшие события</h2></div>

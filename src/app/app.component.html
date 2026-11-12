@@ -16,12 +16,28 @@
   </nav>
 
   @if (view === 'dashboard') {
-    <app-dashboard></app-dashboard>
+    @defer (on immediate) {
+      <app-dashboard></app-dashboard>
+    } @placeholder {
+      <div class="view-loading">Загружаем обзор…</div>
+    }
   } @else if (view === 'activities') {
-    <app-activity-list></app-activity-list>
+    @defer (on immediate) {
+      <app-activity-list></app-activity-list>
+    } @placeholder {
+      <div class="view-loading">Загружаем активности…</div>
+    }
   } @else if (view === 'calendar') {
-    <app-calendar></app-calendar>
+    @defer (on immediate) {
+      <app-calendar></app-calendar>
+    } @placeholder {
+      <div class="view-loading">Загружаем календарь…</div>
+    }
   } @else {
-    <app-activity-history></app-activity-history>
+    @defer (on immediate) {
+      <app-activity-history></app-activity-history>
+    } @placeholder {
+      <div class="view-loading">Загружаем историю…</div>
+    }
   }
 </main>
