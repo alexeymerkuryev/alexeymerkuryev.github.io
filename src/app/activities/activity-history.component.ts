@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Activity, ActivityEntry } from './activity.model';
@@ -28,6 +28,7 @@ interface ChartDay {
   styleUrl: './activity-history.component.scss'
 })
 export class ActivityHistoryComponent implements OnInit {
+  @Input() initialActivityId: string | null = null;
   activities: Activity[] = [];
   selectedActivityId = '';
   entries: ActivityEntry[] = [];
@@ -264,7 +265,9 @@ export class ActivityHistoryComponent implements OnInit {
     this.error = '';
     try {
       this.activities = await this.database.getActivities();
-      if (!this.selectedActivityId || !this.activities.some(a => a.id === this.selectedActivityId)) {
+      if (this.initialActivityId && this.activities.some(a => a.id === this.initialActivityId)) {
+        this.selectedActivityId = this.initialActivityId;
+      } else if (!this.selectedActivityId || !this.activities.some(a => a.id === this.selectedActivityId)) {
         this.selectedActivityId = this.activities[0]?.id ?? '';
       }
       await this.loadEntries();

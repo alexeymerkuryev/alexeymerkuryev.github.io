@@ -1,6 +1,9 @@
 <main>
   <app-cloud-account></app-cloud-account>
   <nav class="app-navigation" aria-label="Основная навигация">
+    <button type="button" [class.active]="view === 'dashboard'" (click)="view = 'dashboard'">
+      <span aria-hidden="true">⌂</span> Обзор
+    </button>
     <button type="button" [class.active]="view === 'activities'" (click)="view = 'activities'">
       <span aria-hidden="true">▦</span> Активности
     </button>
@@ -8,15 +11,33 @@
       <span aria-hidden="true">▣</span> Календарь
     </button>
     <button type="button" [class.active]="view === 'history'" (click)="view = 'history'">
-      <span aria-hidden="true">▤</span> История и статистика
+      <span aria-hidden="true">▤</span> История
     </button>
   </nav>
 
-  @if (view === 'activities') {
-    <app-activity-list></app-activity-list>
+  @if (view === 'dashboard') {
+    @defer (on immediate) {
+      <app-dashboard (navigate)="navigateFromDashboard($event)"></app-dashboard>
+    } @placeholder {
+      <div class="view-loading">Загружаем обзор…</div>
+    }
+  } @else if (view === 'activities') {
+    @defer (on immediate) {
+      <app-activity-list [openActivityId]="activityToOpenId"></app-activity-list>
+    } @placeholder {
+      <div class="view-loading">Загружаем активности…</div>
+    }
   } @else if (view === 'calendar') {
-    <app-calendar></app-calendar>
+    @defer (on immediate) {
+      <app-calendar></app-calendar>
+    } @placeholder {
+      <div class="view-loading">Загружаем календарь…</div>
+    }
   } @else {
-    <app-activity-history></app-activity-history>
+    @defer (on immediate) {
+      <app-activity-history [initialActivityId]="historyActivityId"></app-activity-history>
+    } @placeholder {
+      <div class="view-loading">Загружаем историю…</div>
+    }
   }
 </main>
