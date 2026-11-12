@@ -98,9 +98,12 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
         1
       );
       // Month navigation must not reload the database or mutate activeDate.
-      // Doing so here creates a stateChanges -> load -> refresh -> stateChanges loop.
       this.changeDetector.markForCheck();
     });
+
+    // Data can finish loading before or after the calendar view is created.
+    // Refresh once the MatCalendar instance is available.
+    this.refreshCalendarPresentation();
   }
 
   ngOnDestroy(): void {
@@ -180,8 +183,6 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
     const token = ++this.refreshToken;
     try {
       const activities = await this.database.getActivities();
-      // Fetching by date is sufficient for the selected-day view; month markers
-      // are built from the activity histories below.
       const histories = await Promise.all(
         activities.map(activity => this.database.getEntriesForActivity(activity.id))
       );
@@ -207,10 +208,23 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
         ? history.filter(entry => entry.date === this.formatDate(this.selectedDate!))
         : [];
       this.changeDetector.markForCheck();
+      this.refreshCalendarPresentation();
     } catch (error) {
       this.errorMessage = this.getErrorMessage(error);
       this.changeDetector.markForCheck();
     }
+  }
+
+  /**
+   * MatCalendar's month view can retain its first-render date cells when only
+   * the dateClass callback changes asynchronously. Reassigning a cloned
+   * activeDate notifies the child month view without changing the visible month
+   * or selected date. stateChanges is intentionally presentation-only.
+   */
+  private refreshCalendarPresentation(): void {
+    if (!this.calendar) return;
+    this.calendar.activeDate = new Date(this.calendar.activeDate.getTime());
+    this.changeDetector.markForCheck();
   }
 
   private addDateColor(date: string, color: string): void {
@@ -239,7 +253,6 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     style.textContent = rules.join('\n');
   }
-
 
   countdown(date: string): string {
     const target = new Date(date + 'T00:00:00');
