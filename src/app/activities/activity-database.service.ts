@@ -83,6 +83,17 @@ export class ActivityDatabaseService {
     await this.db.entries.put(entry);
   }
 
+  async removeEntryFromCloud(id: string): Promise<void> {
+    await this.db.entries.delete(id);
+  }
+
+  async removeActivityFromCloud(id: string): Promise<void> {
+    await this.db.transaction('rw', this.db.activities, this.db.entries, async () => {
+      await this.db.entries.where('activityId').equals(id).delete();
+      await this.db.activities.delete(id);
+    });
+  }
+
   async initialize(): Promise<void> {
     await this.db.open();
     await this.migrateLegacyShots();
