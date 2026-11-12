@@ -64,6 +64,10 @@
                 (click)="setHabit(item.activity, 'missed')">Не выполнено</button>
             </ng-template>
           </div>
+          <div class="dashboard-card-links">
+            <button type="button" (click)="openActivity(item.activity)">Активность <span aria-hidden="true">↗</span></button>
+            <button type="button" (click)="openHistory(item.activity)">История <span aria-hidden="true">→</span></button>
+          </div>
         </article>
 
         <article class="quick-action-card" *ngFor="let activity of quickCounters">
@@ -92,6 +96,10 @@
                 (click)="addCounter(activity, counterInputs[activity.id])">Добавить</button>
             </div>
           </div>
+          <div class="dashboard-card-links">
+            <button type="button" (click)="openActivity(activity)">Активность <span aria-hidden="true">↗</span></button>
+            <button type="button" (click)="openHistory(activity)">История <span aria-hidden="true">→</span></button>
+          </div>
         </article>
       </div>
     </section>
@@ -110,6 +118,10 @@
             <span>{{ item.date | date:'d MMMM y':'':'ru' }}</span>
           </div>
           <div class="event-countdown">{{ countdownLabel(item.daysLeft) }}</div>
+          <div class="dashboard-card-links">
+            <button type="button" (click)="openActivity(item.activity)">Активность <span aria-hidden="true">↗</span></button>
+            <button type="button" (click)="openHistory(item.activity)">История <span aria-hidden="true">→</span></button>
+          </div>
         </article>
       </div>
     </section>
@@ -131,6 +143,10 @@
           <div class="streak" *ngIf="item.streak">
             <strong>{{ item.streak }}</strong><span>дн. подряд</span>
           </div>
+          <div class="dashboard-card-links">
+            <button type="button" (click)="openActivity(item.activity)">Активность <span aria-hidden="true">↗</span></button>
+            <button type="button" (click)="openHistory(item.activity)">История <span aria-hidden="true">→</span></button>
+          </div>
         </article>
       </div>
     </section>
@@ -150,6 +166,10 @@
           </div>
           <div class="progress-track"><div class="progress-fill" [style.width.%]="item.progress" [style.background]="item.activity.color || '#c18ae8'"></div></div>
           <span class="progress-label">{{ item.progress }}% от цели</span>
+          <div class="dashboard-card-links">
+            <button type="button" (click)="openActivity(item.activity)">Активность <span aria-hidden="true">↗</span></button>
+            <button type="button" (click)="openHistory(item.activity)">История <span aria-hidden="true">→</span></button>
+          </div>
         </article>
       </div>
     </section>

@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, EventEmitter, OnDestroy, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
@@ -35,6 +35,7 @@ interface UpcomingEvent {
   styleUrl: './dashboard.component.scss'
 })
 export class DashboardComponent implements OnInit, OnDestroy {
+  @Output() navigate = new EventEmitter<{ view: 'activities' | 'history'; activityId: string }>();
   activities: Activity[] = [];
   entries: ActivityEntry[] = [];
   loading = true;
@@ -75,6 +76,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
     } finally {
       this.loading = false;
     }
+  }
+
+  openActivity(activity: Activity): void {
+    this.navigate.emit({ view: 'activities', activityId: activity.id });
+  }
+
+  openHistory(activity: Activity): void {
+    this.navigate.emit({ view: 'history', activityId: activity.id });
   }
 
   get todayLabel(): string {

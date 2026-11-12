@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -18,6 +18,7 @@ import { ActivityDatabaseService } from './activity-database.service';
   styleUrl: './activity-list.component.scss'
 })
 export class ActivityListComponent implements OnInit {
+  @Input() openActivityId: string | null = null;
   activities: Activity[] = [];
   loading = true;
   saving = false;
@@ -43,6 +44,10 @@ export class ActivityListComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.refresh();
+    if (this.openActivityId) {
+      const activity = this.activities.find(item => item.id === this.openActivityId);
+      if (activity) this.openEdit(activity);
+    }
   }
 
   async refresh(): Promise<void> {

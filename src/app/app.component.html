@@ -17,13 +17,13 @@
 
   @if (view === 'dashboard') {
     @defer (on immediate) {
-      <app-dashboard></app-dashboard>
+      <app-dashboard (navigate)="navigateFromDashboard($event)"></app-dashboard>
     } @placeholder {
       <div class="view-loading">Загружаем обзор…</div>
     }
   } @else if (view === 'activities') {
     @defer (on immediate) {
-      <app-activity-list></app-activity-list>
+      <app-activity-list [openActivityId]="activityToOpenId"></app-activity-list>
     } @placeholder {
       <div class="view-loading">Загружаем активности…</div>
     }
@@ -35,7 +35,7 @@
     }
   } @else {
     @defer (on immediate) {
-      <app-activity-history></app-activity-history>
+      <app-activity-history [initialActivityId]="historyActivityId"></app-activity-history>
     } @placeholder {
       <div class="view-loading">Загружаем историю…</div>
     }

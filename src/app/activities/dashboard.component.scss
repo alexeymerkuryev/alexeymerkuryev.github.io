@@ -71,3 +71,15 @@ h1 { margin: 0; font-size: clamp(30px, 7vw, 42px); letter-spacing: -.045em; }
   .quick-action-card { padding: 12px 10px; }
   .counter-manual input { flex: 1; }
 }
+
+.dashboard-card-links { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 2px; }
+.dashboard-card-links button { padding: 6px 9px; border: 1px solid #51405f; border-radius: 8px; color: #d9c3e8; background: #2b2233; font: inherit; font-size: 10px; font-weight: 700; cursor: pointer; }
+.dashboard-card-links button:hover { border-color: #a879c5; background: #382a42; }
+.dashboard-card-links button:focus-visible { outline: 2px solid #d8b1f1; outline-offset: 2px; }
+.event-card, .habit-card { flex-wrap: wrap; }
+.event-card .dashboard-card-links, .habit-card .dashboard-card-links { flex: 0 0 100%; padding-left: 55px; }
+.goal-card .dashboard-card-links { margin-top: 11px; }
+.quick-action-card .dashboard-card-links { padding-top: 2px; border-top: 1px solid #3b3243; }
+@media (max-width: 560px) {
+  .event-card .dashboard-card-links, .habit-card .dashboard-card-links { padding-left: 48px; }
+}

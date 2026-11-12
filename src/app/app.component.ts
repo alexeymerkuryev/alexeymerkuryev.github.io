@@ -14,4 +14,12 @@ import { CloudAccountComponent } from './supabase/cloud-account.component';
 })
 export class AppComponent {
   view: 'dashboard' | 'activities' | 'calendar' | 'history' = 'dashboard';
+  activityToOpenId: string | null = null;
+  historyActivityId: string | null = null;
+
+  navigateFromDashboard(event: { view: 'activities' | 'history'; activityId: string }): void {
+    if (event.view === 'activities') this.activityToOpenId = event.activityId;
+    if (event.view === 'history') this.historyActivityId = event.activityId;
+    this.view = event.view;
+  }
 }
