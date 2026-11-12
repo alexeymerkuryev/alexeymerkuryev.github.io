@@ -2,3 +2,7 @@
 .app-navigation { position: sticky; z-index: 10; top: 0; display: flex; justify-content: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #352c3d; background: #17131df2; backdrop-filter: blur(12px); }
 .app-navigation button { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 16px; border: 1px solid transparent; border-radius: 11px; color: #b7aaba; background: transparent; font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
 .app-navigation button.active { border-color: #654b75; color: #f4e8fb; background: #382a42; }
+@media (max-width: 560px) {
+  .app-navigation { justify-content: flex-start; gap: 4px; padding: 8px 8px; overflow-x: auto; }
+  .app-navigation button { flex: 0 0 auto; gap: 5px; min-height: 36px; padding: 0 10px; font-size: 11px; }
+}
