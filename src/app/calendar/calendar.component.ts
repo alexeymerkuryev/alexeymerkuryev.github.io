@@ -216,14 +216,13 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /**
-   * MatCalendar's month view can retain its first-render date cells when only
-   * the dateClass callback changes asynchronously. Reassigning a cloned
-   * activeDate notifies the child month view without changing the visible month
-   * or selected date. stateChanges is intentionally presentation-only.
+   * updateTodaysDate emits MatCalendar.stateChanges and marks its internal
+   * calendar view for refresh. This re-evaluates dateClass after async history
+   * loading without navigating or changing the selected date.
    */
   private refreshCalendarPresentation(): void {
     if (!this.calendar) return;
-    this.calendar.activeDate = new Date(this.calendar.activeDate.getTime());
+    this.calendar.updateTodaysDate();
     this.changeDetector.markForCheck();
   }
 
