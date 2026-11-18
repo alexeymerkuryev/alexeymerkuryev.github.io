@@ -14,7 +14,12 @@
       [dateClass]="dateClass"
       (selectedChange)="onDateSelected($event)">
     </mat-calendar>
-    <p class="calendar-hint">Даты с записями отмечены цветом</p>
+    <div class="calendar-legend" aria-label="Обозначения календаря">
+      <span class="calendar-hint">Цветные точки — активности</span>
+      <span class="legend-status positive"><b>✓</b> Выполнено / удержался</span>
+      <span class="legend-status negative"><b>×</b> Пропущено / срыв</span>
+      <span class="legend-status mixed"><b>±</b> Разные статусы</span>
+    </div>
   </div>
 
   <section class="day-panel">
