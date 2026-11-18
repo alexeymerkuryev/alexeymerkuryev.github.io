@@ -26,6 +26,54 @@
     </section>
 
 
+
+    <section class="dashboard-section heatmap-section" *ngIf="activities.length">
+      <div class="section-heading">
+        <div><p class="eyebrow">ПОСЛЕДНИЕ 6 МЕСЯЦЕВ</p><h2>Карта активности</h2></div>
+        <span class="heatmap-period">26 недель</span>
+      </div>
+      <div class="heatmap-card">
+        <div class="heatmap-summary">
+          <div><strong>{{ heatmapActiveDays }}</strong><span>активных дней</span></div>
+          <div><strong>{{ heatmapRecordCount }}</strong><span>записей</span></div>
+          <div class="positive-stat"><strong>{{ heatmapPositiveDays }}</strong><span>дней с успехом</span></div>
+          <div class="negative-stat"><strong>{{ heatmapNegativeDays }}</strong><span>дней с пропуском/срывом</span></div>
+        </div>
+        <div class="heatmap-scroll">
+          <div class="heatmap-months">
+            <span *ngFor="let week of heatmapWeeks" [style.grid-column]="week.index">{{ week.monthLabel }}</span>
+          </div>
+          <div class="heatmap-grid" role="group" aria-label="Карта активности за последние 26 недель">
+            <ng-container *ngFor="let week of heatmapWeeks">
+              <span *ngFor="let day of week.days"
+                class="heatmap-day"
+                [class.future]="day.future"
+                [class.positive]="day.positive"
+                [class.negative]="day.negative"
+                [class.mixed]="day.mixed"
+                [class.level-0]="day.level === 0"
+                [class.level-1]="day.level === 1"
+                [class.level-2]="day.level === 2"
+                [class.level-3]="day.level === 3"
+                [class.level-4]="day.level === 4"
+                [attr.title]="day.title"
+                [attr.aria-label]="day.title"></span>
+            </ng-container>
+          </div>
+        </div>
+        <div class="heatmap-legend">
+          <span class="legend-label">Меньше</span>
+          <i class="heatmap-day level-0"></i><i class="heatmap-day level-1"></i>
+          <i class="heatmap-day level-2"></i><i class="heatmap-day level-3"></i>
+          <i class="heatmap-day level-4"></i><span class="legend-label">Больше</span>
+          <span class="legend-divider"></span>
+          <span class="status-legend positive-key">Успех</span>
+          <span class="status-legend negative-key">Пропуск / срыв</span>
+          <span class="status-legend mixed-key">Смешанный день</span>
+        </div>
+      </div>
+    </section>
+
     <section class="dashboard-section quick-actions" *ngIf="quickHabits.length || quickCounters.length">
       <div class="section-heading">
         <div><p class="eyebrow">БЕЗ ЛИШНИХ ПЕРЕХОДОВ</p><h2>Быстрые действия</h2></div>

@@ -27,6 +27,24 @@ interface UpcomingEvent {
   daysLeft: number;
 }
 
+interface HeatmapDay {
+  date: string;
+  dayNumber: number;
+  count: number;
+  level: number;
+  future: boolean;
+  positive: boolean;
+  negative: boolean;
+  mixed: boolean;
+  title: string;
+}
+
+interface HeatmapWeek {
+  index: number;
+  monthLabel: string;
+  days: HeatmapDay[];
+}
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -43,6 +61,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   counterInputs: Record<string, number> = {};
   readonly busyActivityIds = new Set<string>();
   today = new Date();
+  heatmapWeeks: HeatmapWeek[] = [];
+  heatmapActiveDays = 0;
+  heatmapRecordCount = 0;
+  heatmapPositiveDays = 0;
+  heatmapNegativeDays = 0;
   private changesSubscription?: Subscription;
 
   constructor(private readonly database: ActivityDatabaseService) {}
@@ -70,6 +93,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         }
       }
       this.today = new Date();
+      this.buildHeatmap();
       this.error = '';
     } catch (error) {
       this.error = error instanceof Error ? error.message : 'Не удалось загрузить обзор.';
@@ -217,6 +241,80 @@ export class DashboardComponent implements OnInit, OnDestroy {
       return status === 'success' ? 'Удержался' : status === 'slipped' ? 'Был срыв' : 'Отмечено';
     }
     return status === 'completed' ? 'Выполнено' : status === 'missed' ? 'Не выполнено' : 'Отмечено';
+  }
+
+
+  private buildHeatmap(): void {
+    const today = new Date(this.today.getFullYear(), this.today.getMonth(), this.today.getDate());
+    const mondayOffset = (today.getDay() + 6) % 7;
+    const currentMonday = new Date(today);
+    currentMonday.setDate(today.getDate() - mondayOffset);
+    const firstMonday = new Date(currentMonday);
+    firstMonday.setDate(currentMonday.getDate() - 25 * 7);
+
+    const entriesByDate = new Map<string, ActivityEntry[]>();
+    for (const entry of this.entries) {
+      const bucket = entriesByDate.get(entry.date) ?? [];
+      bucket.push(entry);
+      entriesByDate.set(entry.date, bucket);
+    }
+
+    this.heatmapActiveDays = 0;
+    this.heatmapRecordCount = this.entries.filter(entry => entry.date >= this.formatDate(firstMonday) && entry.date <= this.formatDate(today)).length;
+    this.heatmapPositiveDays = 0;
+    this.heatmapNegativeDays = 0;
+
+    const weeks: HeatmapWeek[] = [];
+    for (let weekIndex = 0; weekIndex < 26; weekIndex++) {
+      const weekStart = new Date(firstMonday);
+      weekStart.setDate(firstMonday.getDate() + weekIndex * 7);
+      const monthLabel = weekStart.getDate() <= 7
+        ? weekStart.toLocaleDateString('ru-RU', { month: 'short' }).replace('.', '')
+        : '';
+      const days: HeatmapDay[] = [];
+
+      for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+        const date = new Date(weekStart);
+        date.setDate(weekStart.getDate() + dayIndex);
+        const dateKey = this.formatDate(date);
+        const dayEntries = entriesByDate.get(dateKey) ?? [];
+        const activityCount = new Set(dayEntries.map(entry => entry.activityId)).size;
+        const positive = dayEntries.some(entry => entry.status === 'completed' || entry.status === 'success');
+        const negative = dayEntries.some(entry => entry.status === 'missed' || entry.status === 'slipped');
+        const future = date.getTime() > today.getTime();
+
+        if (!future && activityCount > 0) this.heatmapActiveDays++;
+        if (!future && positive) this.heatmapPositiveDays++;
+        if (!future && negative) this.heatmapNegativeDays++;
+
+        const level = activityCount === 0 ? 0
+          : activityCount === 1 ? 1
+          : activityCount === 2 ? 2
+          : activityCount <= 4 ? 3 : 4;
+        const dateLabel = date.toLocaleDateString('ru-RU', {
+          weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+        });
+        const summary = activityCount
+          ? `${activityCount} активност${activityCount === 1 ? 'ь' : activityCount < 5 ? 'и' : 'ей'} · ${dayEntries.length} записей`
+          : 'Нет записей';
+        const statusSummary = positive && negative ? ' · Есть успехи и пропуски/срывы'
+          : positive ? ' · Есть успешная привычка'
+          : negative ? ' · Есть пропуск или срыв' : '';
+        days.push({
+          date: dateKey,
+          dayNumber: date.getDate(),
+          count: activityCount,
+          level,
+          future,
+          positive,
+          negative,
+          mixed: positive && negative,
+          title: `${dateLabel}: ${summary}${statusSummary}`
+        });
+      }
+      weeks.push({ index: weekIndex + 1, monthLabel, days });
+    }
+    this.heatmapWeeks = weeks;
   }
 
   private streakFor(activity: Activity, successStatus: HabitEntryStatus): number {
