@@ -232,3 +232,90 @@ mat-dialog-content li {
 mat-dialog-content ul {
   padding-left: 22px;
 }
+
+
+/* Habit outcome badges are independent from activity-color dots. */
+.activity-date-marked .mat-calendar-body-cell-content {
+  position: relative;
+  overflow: visible;
+}
+
+.activity-date-status-positive .mat-calendar-body-cell-content::after,
+.activity-date-status-negative .mat-calendar-body-cell-content::after,
+.activity-date-status-mixed .mat-calendar-body-cell-content::after {
+  position: absolute;
+  top: -4px;
+  right: -5px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border: 1.5px solid #17121f;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.activity-date-status-positive .mat-calendar-body-cell-content::after {
+  content: '✓';
+  background: #21865e;
+}
+
+.activity-date-status-negative .mat-calendar-body-cell-content::after {
+  content: '×';
+  background: #d34c5b;
+}
+
+.activity-date-status-mixed .mat-calendar-body-cell-content::after {
+  content: '±';
+  background: #bd8428;
+}
+
+.calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 7px 12px;
+  margin-top: 8px;
+}
+
+.calendar-hint {
+  margin: 0;
+}
+
+.legend-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #c9c0d3;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.legend-status b {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 11px;
+}
+
+.legend-status.positive b { background: #21865e; }
+.legend-status.negative b { background: #d34c5b; }
+.legend-status.mixed b { background: #bd8428; }
+
+@media (max-width: 480px) {
+  .calendar-legend {
+    gap: 6px 9px;
+  }
+  .legend-status {
+    font-size: 10px;
+  }
+}

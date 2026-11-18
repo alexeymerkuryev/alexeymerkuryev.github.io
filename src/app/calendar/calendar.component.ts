@@ -57,6 +57,7 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
   entries: ActivityEntry[] = [];
   private recordedDates = new Set<string>();
   private dateColors = new Map<string, string[]>();
+  private dateHabitStatuses = new Map<string, Set<'positive' | 'negative'>>();
   private calendarStateSubscription?: Subscription;
   private refreshToken = 0;
 
@@ -79,9 +80,16 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
     return (cellDate, view) => {
       if (view !== 'month') return '';
       const date = this.formatDate(cellDate);
-      return this.recordedDates.has(date)
-        ? 'activity-date-marked activity-date-' + date.replace(/-/g, '')
-        : '';
+      const classes = this.recordedDates.has(date)
+        ? ['activity-date-marked', 'activity-date-' + date.replace(/-/g, '')]
+        : [];
+      const statuses = this.dateHabitStatuses.get(date);
+      if (statuses?.size === 1) {
+        classes.push(statuses.has('positive') ? 'activity-date-status-positive' : 'activity-date-status-negative');
+      } else if (statuses && statuses.size > 1) {
+        classes.push('activity-date-status-mixed');
+      }
+      return classes.join(' ');
     };
   }
 
@@ -192,9 +200,18 @@ export class CalendarComponent implements OnInit, AfterViewInit, OnDestroy {
       const history = histories.flat();
       this.recordedDates = new Set(history.map(entry => entry.date));
       this.dateColors = new Map<string, string[]>();
+      this.dateHabitStatuses = new Map<string, Set<'positive' | 'negative'>>();
       for (const entry of history) {
         const activity = activities.find(item => item.id === entry.activityId);
         this.addDateColor(entry.date, activity?.color ?? '#a55aff');
+
+        if (activity?.type === 'habit' && entry.status) {
+          const statuses = this.dateHabitStatuses.get(entry.date) ?? new Set<'positive' | 'negative'>();
+          statuses.add(
+            entry.status === 'completed' || entry.status === 'success' ? 'positive' : 'negative'
+          );
+          this.dateHabitStatuses.set(entry.date, statuses);
+        }
       }
       for (const activity of activities) {
         if (activity.type === 'event' && activity.settings.eventDate) {
